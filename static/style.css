@@ -1,0 +1,181 @@
+body {
+    background-color: black;
+    color: white;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    text-align: center;
+}
+
+header {
+    background-color: #4682B4;
+    padding: 20px;
+}
+
+h2 {
+    color: #87CEEB;
+    margin-top: 0;
+}
+
+#clock {
+    font-size: 1.5em;
+    color: #4CAF50;
+    margin-top: 5px;
+}
+
+#system-stats {
+    margin-top: 8px;
+    font-size: 0.85em;
+    color: #e0e0e0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+}
+
+.container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 20px;
+}
+
+.box {
+    background: #1c1c1c;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 20px;
+    width: 340px;
+    box-shadow: 0 0 10px rgba(255,255,255,0.2);
+    box-sizing: border-box;
+}
+
+.status {
+    font-weight: bold;
+}
+
+.state-printing { color: #4CAF50; }
+.state-paused   { color: #FFC107; }
+.state-idle     { color: #2196F3; }
+.state-error,
+.state-offline  { color: #F44336; }
+
+.progress {
+    background: #333;
+    height: 20px;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-top: 10px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: #4CAF50;
+    width: 0%;
+    transition: width 0.5s ease;
+}
+
+button {
+    margin: 8px 6px 4px;
+    padding: 8px 16px;
+    font-size: 1em;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+button.cancel {
+    background-color: #F44336;
+    color: white;
+}
+
+button:not(.cancel) {
+    background-color: #4CAF50;
+    color: black;
+}
+
+button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.camera {
+    margin-top: 12px;
+}
+
+.camera img {
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid #333;
+}
+
+.temp-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-left: 6px;
+    border-radius: 50%;
+}
+
+.temp-stable { background-color: #4CAF50; }
+.temp-warn   { background-color: #FFC107; }
+.temp-bad    { background-color: #F44336; }
+
+.weather-box {
+    width: 340px;
+}
+
+.collapsible {
+    cursor: pointer;
+    user-select: none;
+}
+
+#weather-arrow {
+    float: right;
+    font-size: 0.9em;
+}
+
+.weather-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s ease;
+    text-align: left;
+}
+
+.weather-content.open {
+    max-height: 1200px;
+}
+
+.weather-content p {
+    margin: 6px 0;
+}
+
+.weather-content hr {
+    border: none;
+    border-top: 1px solid #444;
+    margin: 10px 0;
+}
+
+@media (max-width: 768px) {
+    .box {
+        width: 92%;
+        margin: 12px auto;
+    }
+
+    #system-stats {
+        font-size: 0.8em;
+        gap: 8px;
+    }
+
+    button {
+        width: 100%;
+        margin: 6px 0;
+    }
+}
+/* --- FIX WEATHER COLLAPSE HEIGHT ON DESKTOP --- */
+.weather-box {
+    align-self: flex-start;
+}
+/* --- PREVENT DASHBOARD REFLOW ON COLLAPSE --- */
+.container {
+    align-items: flex-start;
+}

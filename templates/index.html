@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Claus' 3D Printer Dashboard</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+<script>
+const socket = io();
+
+/* ---------- CLOCK ---------- */
+function updateClock() {
+    document.getElementById("clock").textContent =
+        new Date().toLocaleTimeString();
+}
+setInterval(updateClock, 1000);
+
+/* ---------- STATE COLORS ---------- */
+function stateClass(text) {
+    if (!text) return "state-offline";
+    text = text.toLowerCase();
+    if (text.includes("print")) return "state-printing";
+    if (text.includes("pause")) return "state-paused";
+    if (text.includes("operational")) return "state-idle";
+    return "state-error";
+}
+
+/* ---------- SMART PAUSE / RESUME ---------- */
+function togglePauseResume(printer, state) {
+    const action = state.includes("pause") ? "resume" : "pause";
+    fetch(`/api/control/${printer}/${action}`, { method: "POST" });
+}
+
+/* ---------- WEATHER TOGGLE (ORIGINAL WORKING VERSION) ---------- */
+function toggleWeather() {
+    const content = document.getElementById("weather-content");
+    const arrow = document.getElementById("weather-arrow");
+
+    const open = content.classList.toggle("open");
+    arrow.textContent = open ? "▼" : "▶";
+
+    localStorage.setItem("weatherOpen", open);
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+    const open = localStorage.getItem("weatherOpen") === "true";
+    const content = document.getElementById("weather-content");
+    const arrow = document.getElementById("weather-arrow");
+
+    if (open) {
+        content.classList.add("open");
+        arrow.textContent = "▼";
+    }
+});
+
+/* ---------- TEMP HISTORY ---------- */
+const tempHistory = { minimus: [], sprite: [] };
+
+/* ---------- SOCKET DATA ---------- */
+socket.on("update", d => {
+
+    /* ===== SYSTEM ===== */
+    if (d.system) {
+        document.getElementById("sys-cpu").textContent =
+            d.system.cpu.toFixed(0);
+
+        document.getElementById("sys-mem").textContent =
+            `${d.system.mem_used}/${d.system.mem_total} GB (${d.system.mem_percent}%)`;
+
+        document.getElementById("sys-disk").textContent =
+            `${d.system.disk_used}/${d.system.disk_total} GB (${d.system.disk_percent}%)`;
+
+        const u = d.system.uptime;
+        document.getElementById("sys-up").textContent =
+            `${Math.floor(u / 3600)}h ${Math.floor((u % 3600) / 60)}m`;
+    }
+
+    /* ===== WEATHER ===== */
+    if (d.weather && !d.weather.error) {
+        const w = d.weather;
+        document.getElementById("w-temp").textContent = w.temp.toFixed(1);
+        document.getElementById("w-feels").textContent = w.feels.toFixed(1);
+        document.getElementById("w-hum").textContent = w.humidity;
+        document.getElementById("w-wind").textContent = w.wind.toFixed(1);
+        document.getElementById("w-clouds").textContent = w.clouds;
+        document.getElementById("w-pressure").textContent = w.pressure;
+        document.getElementById("w-vis").textContent = w.visibility.toFixed(1);
+        document.getElementById("w-aqi").textContent = w.aqi;
+        document.getElementById("w-pm25").textContent = w.pm25.toFixed(1);
+        document.getElementById("w-rain").textContent = w.rain_prob.toFixed(0);
+        document.getElementById("w-min").textContent = w.temp_min.toFixed(0);
+        document.getElementById("w-max").textContent = w.temp_max.toFixed(0);
+        document.getElementById("w-sunrise").textContent =
+            new Date(w.sunrise * 1000).toLocaleTimeString();
+        document.getElementById("w-sunset").textContent =
+            new Date(w.sunset * 1000).toLocaleTimeString();
+    }
+
+    function updatePrinter(prefix, printer, job) {
+        const status = printer?.state?.text || "Offline";
+        const state = status.toLowerCase();
+        const progress = job?.progress?.completion || 0;
+
+        const s = document.getElementById(prefix + "-status");
+        s.textContent = status;
+        s.className = "status " + stateClass(status);
+
+        const f = document.getElementById(prefix + "-file");
+        if (job?.job?.file?.name) {
+            f.textContent = job.job.file.name;
+            f.style.display = "block";
+        } else f.style.display = "none";
+
+        if (printer?.temperature?.tool0) {
+            const t = printer.temperature.tool0.actual;
+            document.getElementById(prefix + "-hotend").textContent =
+                t.toFixed(1) + " °C";
+
+            const hist = tempHistory[prefix];
+            hist.push(t);
+            if (hist.length > 10) hist.shift();
+
+            const delta = Math.max(...hist) - Math.min(...hist);
+            const dot = document.getElementById(prefix + "-temp-dot");
+            dot.className = "temp-dot";
+            if (delta < 1) dot.classList.add("temp-stable");
+            else if (delta < 4) dot.classList.add("temp-warn");
+            else dot.classList.add("temp-bad");
+        }
+
+        if (printer?.temperature?.bed) {
+            document.getElementById(prefix + "-bed").textContent =
+                printer.temperature.bed.actual.toFixed(1) + " °C";
+        }
+
+        document.getElementById(prefix + "-bar").style.width =
+            progress.toFixed(1) + "%";
+
+        const p = document.getElementById(prefix + "-progress");
+
+        if (state.includes("print") && job?.progress?.printTimeLeft) {
+            const left = job.progress.printTimeLeft;
+            const elapsed = job.progress.printTime || 0;
+            const finish = new Date(Date.now() + left * 1000).toLocaleTimeString();
+
+            p.textContent =
+                `${progress.toFixed(1)}% · ${Math.floor(left / 60)}m left · ${Math.floor(elapsed / 60)}m elapsed · Finishes ${finish}`;
+        }
+        else if (state.includes("pause")) {
+            p.textContent = `${progress.toFixed(1)}% · Paused`;
+        }
+        else {
+            p.textContent = "";
+        }
+
+        const toggleBtn = document.getElementById(prefix + "-toggle");
+        if (state.includes("print")) {
+            toggleBtn.style.display = "inline-block";
+            toggleBtn.textContent = "Pause";
+            toggleBtn.onclick = () => togglePauseResume(prefix, state);
+        }
+        else if (state.includes("pause")) {
+            toggleBtn.style.display = "inline-block";
+            toggleBtn.textContent = "Resume";
+            toggleBtn.onclick = () => togglePauseResume(prefix, state);
+        }
+        else {
+            toggleBtn.style.display = "none";
+        }
+
+        document.getElementById(prefix + "-cancel").disabled =
+            !(state.includes("print") || state.includes("pause"));
+    }
+
+    updatePrinter("minimus", d.minimus_printer, d.minimus_job);
+    updatePrinter("sprite", d.sprite_printer, d.sprite_job);
+});
+</script>
+</head>
+
+<body>
+
+<header>
+    <h1>Claus' 3D Printer Dashboard</h1>
+    <div id="clock">--:--:--</div>
+
+    <div id="system-stats">
+        🧠 CPU <span id="sys-cpu">--</span>% |
+        💾 RAM <span id="sys-mem">--</span> |
+        💽 Disk <span id="sys-disk">--</span> |
+        ⏱ <span id="sys-up">--</span>
+    </div>
+</header>
+
+<div class="container">
+
+<div class="box weather-box">
+    <h2 class="collapsible" onclick="toggleWeather()">
+        Weather <span id="weather-arrow">▶</span>
+    </h2>
+    <div id="weather-content" class="weather-content">
+        <p>🌡 Temp: <span id="w-temp">--</span> °C (Feels <span id="w-feels">--</span>)</p>
+        <p>💧 Humidity: <span id="w-hum">--</span>%</p>
+        <p>🌬 Wind: <span id="w-wind">--</span> m/s</p>
+        <p>☁ Clouds: <span id="w-clouds">--</span>%</p>
+        <p>📉 Pressure: <span id="w-pressure">--</span> hPa</p>
+        <p>👁 Visibility: <span id="w-vis">--</span> km</p>
+        <hr>
+        <p>🌫 AQI: <span id="w-aqi">--</span> (PM2.5: <span id="w-pm25">--</span>)</p>
+        <hr>
+        <p>🌧 Rain chance (1h): <span id="w-rain">--</span>%</p>
+        <p>📆 Today: <span id="w-min">--</span>° / <span id="w-max">--</span>°</p>
+        <hr>
+        <p>🌅 Sunrise: <span id="w-sunrise">--</span></p>
+        <p>🌇 Sunset: <span id="w-sunset">--</span></p>
+    </div>
+</div>
+
+<div class="box">
+    <h2>Minimus</h2>
+    <p id="minimus-file" style="display:none;"></p>
+    <p>Status: <span id="minimus-status">--</span></p>
+    <p>Hotend: <span id="minimus-hotend">--</span><span id="minimus-temp-dot" class="temp-dot"></span></p>
+    <p>Bed: <span id="minimus-bed">--</span></p>
+
+    <div class="progress"><div id="minimus-bar" class="progress-fill"></div></div>
+    <p id="minimus-progress"></p>
+
+    <button id="minimus-toggle" style="display:none;">Pause</button>
+    <button id="minimus-cancel" class="cancel"
+    onclick="if (confirm('Cancel Minimus print?')) fetch('/api/control/minimus/cancel', { method: 'POST' })">
+    Cancel
+    </button>
+
+
+    <div class="camera">
+        <img src="http://192.168.2.51/cam_Ender3minimus/?action=stream">
+    </div>
+</div>
+
+<div class="box">
+    <h2>Sprite</h2>
+    <p id="sprite-file" style="display:none;"></p>
+    <p>Status: <span id="sprite-status">--</span></p>
+    <p>Hotend: <span id="sprite-hotend">--</span><span id="sprite-temp-dot" class="temp-dot"></span></p>
+    <p>Bed: <span id="sprite-bed">--</span></p>
+
+    <div class="progress"><div id="sprite-bar" class="progress-fill"></div></div>
+    <p id="sprite-progress"></p>
+
+    <button id="sprite-toggle" style="display:none;">Pause</button>
+    <button id="sprite-cancel" class="cancel"
+    onclick="if (confirm('Cancel Sprite print?')) fetch('/api/control/sprite/cancel', { method: 'POST' })">
+    Cancel
+    </button>
+
+
+    <div class="camera">
+        <img src="http://192.168.2.51/cam_Ender3Sprite/?action=stream">
+    </div>
+</div>
+
+</div>
+</body>
+</html>
