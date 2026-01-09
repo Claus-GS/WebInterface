@@ -37,6 +37,7 @@ h2 {
     flex-wrap: wrap;
     justify-content: center;
     margin: 20px;
+    align-items: flex-start;
 }
 
 .box {
@@ -59,6 +60,7 @@ h2 {
 .state-error,
 .state-offline  { color: #F44336; }
 
+/* ---------- PROGRESS BAR ---------- */
 .progress {
     background: #333;
     height: 20px;
@@ -67,13 +69,17 @@ h2 {
     margin-top: 10px;
 }
 
+/* 🔵 MATCH HEADER / SPRITE BLUE */
 .progress-fill {
     height: 100%;
-    background: #4CAF50;
+    background: #4682B4;   /* same blue as header */
     width: 0%;
     transition: width 0.5s ease;
+    display: block;
+    min-width: 6px;
 }
 
+/* ---------- BUTTONS ---------- */
 button {
     margin: 8px 6px 4px;
     padding: 8px 16px;
@@ -89,8 +95,8 @@ button.cancel {
 }
 
 button:not(.cancel) {
-    background-color: #4CAF50;
-    color: black;
+    background-color: #4682B4;
+    color: white;
 }
 
 button:disabled {
@@ -98,6 +104,7 @@ button:disabled {
     cursor: not-allowed;
 }
 
+/* ---------- CAMERA ---------- */
 .camera {
     margin-top: 12px;
 }
@@ -108,6 +115,7 @@ button:disabled {
     border: 1px solid #333;
 }
 
+/* ---------- TEMP STABILITY DOT ---------- */
 .temp-dot {
     display: inline-block;
     width: 10px;
@@ -120,8 +128,10 @@ button:disabled {
 .temp-warn   { background-color: #FFC107; }
 .temp-bad    { background-color: #F44336; }
 
+/* ---------- WEATHER ---------- */
 .weather-box {
     width: 340px;
+    align-self: flex-start;
 }
 
 .collapsible {
@@ -155,6 +165,7 @@ button:disabled {
     margin: 10px 0;
 }
 
+/* ---------- MOBILE ---------- */
 @media (max-width: 768px) {
     .box {
         width: 92%;
@@ -170,12 +181,4 @@ button:disabled {
         width: 100%;
         margin: 6px 0;
     }
-}
-/* --- FIX WEATHER COLLAPSE HEIGHT ON DESKTOP --- */
-.weather-box {
-    align-self: flex-start;
-}
-/* --- PREVENT DASHBOARD REFLOW ON COLLAPSE --- */
-.container {
-    align-items: flex-start;
 }
