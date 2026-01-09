@@ -35,27 +35,49 @@ function togglePauseResume(printer, state) {
     fetch(`/api/control/${printer}/${action}`, { method: "POST" });
 }
 
-/* ---------- WEATHER TOGGLE (ORIGINAL WORKING VERSION) ---------- */
+/* ---------- WEATHER TOGGLE ---------- */
 function toggleWeather() {
     const content = document.getElementById("weather-content");
     const arrow = document.getElementById("weather-arrow");
-
     const open = content.classList.toggle("open");
     arrow.textContent = open ? "▼" : "▶";
-
     localStorage.setItem("weatherOpen", open);
+}
+function refreshCamera(id) {
+    const img = document.getElementById(id);
+    if (!img) return;
+
+    const base = img.src.split("?")[0];
+    img.src = base + "?action=stream&t=" + Date.now();
 }
 
 window.addEventListener("DOMContentLoaded", () => {
     const open = localStorage.getItem("weatherOpen") === "true";
-    const content = document.getElementById("weather-content");
-    const arrow = document.getElementById("weather-arrow");
-
     if (open) {
-        content.classList.add("open");
-        arrow.textContent = "▼";
+        document.getElementById("weather-content").classList.add("open");
+        document.getElementById("weather-arrow").textContent = "▼";
+    }
+
+    // kick cameras once on load
+    refreshCamera("cam-minimus");
+    refreshCamera("cam-sprite");
+});
+
+// refresh every 30 seconds
+setInterval(() => {
+    refreshCamera("cam-minimus");
+    refreshCamera("cam-sprite");
+}, 30000);
+
+// refresh when phone unlocks / tab becomes visible again
+document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+        refreshCamera("cam-minimus");
+        refreshCamera("cam-sprite");
     }
 });
+
+
 
 /* ---------- TEMP HISTORY ---------- */
 const tempHistory = { minimus: [], sprite: [] };
@@ -65,15 +87,11 @@ socket.on("update", d => {
 
     /* ===== SYSTEM ===== */
     if (d.system) {
-        document.getElementById("sys-cpu").textContent =
-            d.system.cpu.toFixed(0);
-
+        document.getElementById("sys-cpu").textContent = d.system.cpu.toFixed(0);
         document.getElementById("sys-mem").textContent =
             `${d.system.mem_used}/${d.system.mem_total} GB (${d.system.mem_percent}%)`;
-
         document.getElementById("sys-disk").textContent =
             `${d.system.disk_used}/${d.system.disk_total} GB (${d.system.disk_percent}%)`;
-
         const u = d.system.uptime;
         document.getElementById("sys-up").textContent =
             `${Math.floor(u / 3600)}h ${Math.floor((u % 3600) / 60)}m`;
@@ -103,72 +121,80 @@ socket.on("update", d => {
     function updatePrinter(prefix, printer, job) {
         const status = printer?.state?.text || "Offline";
         const state = status.toLowerCase();
-        const progress = job?.progress?.completion || 0;
 
+        /* ---------- STATUS ---------- */
         const s = document.getElementById(prefix + "-status");
         s.textContent = status;
         s.className = "status " + stateClass(status);
 
+        /* ---------- FILE ---------- */
         const f = document.getElementById(prefix + "-file");
         if (job?.job?.file?.name) {
             f.textContent = job.job.file.name;
             f.style.display = "block";
-        } else f.style.display = "none";
-
-        if (printer?.temperature?.tool0) {
-            const t = printer.temperature.tool0.actual;
-            document.getElementById(prefix + "-hotend").textContent =
-                t.toFixed(1) + " °C";
-
-            const hist = tempHistory[prefix];
-            hist.push(t);
-            if (hist.length > 10) hist.shift();
-
-            const delta = Math.max(...hist) - Math.min(...hist);
-            const dot = document.getElementById(prefix + "-temp-dot");
-            dot.className = "temp-dot";
-            if (delta < 1) dot.classList.add("temp-stable");
-            else if (delta < 4) dot.classList.add("temp-warn");
-            else dot.classList.add("temp-bad");
+        } else {
+            f.style.display = "none";
         }
 
+        /* ---------- TEMPS ---------- */
+        if (printer?.temperature?.tool0) {
+            const t = printer.temperature.tool0.actual;
+            document.getElementById(prefix + "-hotend").textContent = t.toFixed(1) + " °C";
+        }
         if (printer?.temperature?.bed) {
             document.getElementById(prefix + "-bed").textContent =
                 printer.temperature.bed.actual.toFixed(1) + " °C";
         }
 
-        document.getElementById(prefix + "-bar").style.width =
-            progress.toFixed(1) + "%";
+        /* ---------- PROGRESS (FIXED) ---------- */
+        let progress = 0;
 
+        if (typeof job?.progress?.completion === "number") {
+            progress = job.progress.completion;
+            if (progress > 0 && progress <= 1) progress *= 100;
+        }
+
+        if (
+            (!progress || progress <= 0) &&
+            typeof job?.progress?.filepos === "number" &&
+            typeof job?.job?.file?.size === "number" &&
+            job.job.file.size > 0
+        ) {
+            progress = (job.progress.filepos / job.job.file.size) * 100;
+        }
+
+        if (!Number.isFinite(progress)) progress = 0;
+        progress = Math.max(0, Math.min(100, progress));
+
+        const bar = document.getElementById(prefix + "-bar");
+        bar.style.width =
+            progress > 0 ? Math.max(progress, 4).toFixed(1) + "%" : "0%";
+
+
+        /* ---------- TEXT ---------- */
         const p = document.getElementById(prefix + "-progress");
-
         if (state.includes("print") && job?.progress?.printTimeLeft) {
             const left = job.progress.printTimeLeft;
-            const elapsed = job.progress.printTime || 0;
             const finish = new Date(Date.now() + left * 1000).toLocaleTimeString();
-
             p.textContent =
-                `${progress.toFixed(1)}% · ${Math.floor(left / 60)}m left · ${Math.floor(elapsed / 60)}m elapsed · Finishes ${finish}`;
-        }
-        else if (state.includes("pause")) {
+                `${progress.toFixed(1)}% · ${Math.floor(left / 60)}m left · Finishes ${finish}`;
+        } else if (state.includes("pause")) {
             p.textContent = `${progress.toFixed(1)}% · Paused`;
-        }
-        else {
+        } else {
             p.textContent = "";
         }
 
+        /* ---------- BUTTONS ---------- */
         const toggleBtn = document.getElementById(prefix + "-toggle");
         if (state.includes("print")) {
             toggleBtn.style.display = "inline-block";
             toggleBtn.textContent = "Pause";
             toggleBtn.onclick = () => togglePauseResume(prefix, state);
-        }
-        else if (state.includes("pause")) {
+        } else if (state.includes("pause")) {
             toggleBtn.style.display = "inline-block";
             toggleBtn.textContent = "Resume";
             toggleBtn.onclick = () => togglePauseResume(prefix, state);
-        }
-        else {
+        } else {
             toggleBtn.style.display = "none";
         }
 
@@ -183,11 +209,9 @@ socket.on("update", d => {
 </head>
 
 <body>
-
 <header>
     <h1>Claus' 3D Printer Dashboard</h1>
     <div id="clock">--:--:--</div>
-
     <div id="system-stats">
         🧠 CPU <span id="sys-cpu">--</span>% |
         💾 RAM <span id="sys-mem">--</span> |
@@ -224,21 +248,15 @@ socket.on("update", d => {
     <h2>Minimus</h2>
     <p id="minimus-file" style="display:none;"></p>
     <p>Status: <span id="minimus-status">--</span></p>
-    <p>Hotend: <span id="minimus-hotend">--</span><span id="minimus-temp-dot" class="temp-dot"></span></p>
+    <p>Hotend: <span id="minimus-hotend">--</span></p>
     <p>Bed: <span id="minimus-bed">--</span></p>
-
     <div class="progress"><div id="minimus-bar" class="progress-fill"></div></div>
     <p id="minimus-progress"></p>
-
     <button id="minimus-toggle" style="display:none;">Pause</button>
-    <button id="minimus-cancel" class="cancel"
-    onclick="if (confirm('Cancel Minimus print?')) fetch('/api/control/minimus/cancel', { method: 'POST' })">
-    Cancel
-    </button>
-
-
+    <button id="minimus-cancel" class="cancel">Cancel</button>
     <div class="camera">
-        <img src="http://192.168.2.51/cam_Ender3minimus/?action=stream">
+        <img id="cam-minimus"
+            src="http://192.168.2.51/cam_Ender3minimus/?action=stream">
     </div>
 </div>
 
@@ -246,21 +264,15 @@ socket.on("update", d => {
     <h2>Sprite</h2>
     <p id="sprite-file" style="display:none;"></p>
     <p>Status: <span id="sprite-status">--</span></p>
-    <p>Hotend: <span id="sprite-hotend">--</span><span id="sprite-temp-dot" class="temp-dot"></span></p>
+    <p>Hotend: <span id="sprite-hotend">--</span></p>
     <p>Bed: <span id="sprite-bed">--</span></p>
-
     <div class="progress"><div id="sprite-bar" class="progress-fill"></div></div>
     <p id="sprite-progress"></p>
-
     <button id="sprite-toggle" style="display:none;">Pause</button>
-    <button id="sprite-cancel" class="cancel"
-    onclick="if (confirm('Cancel Sprite print?')) fetch('/api/control/sprite/cancel', { method: 'POST' })">
-    Cancel
-    </button>
-
-
+    <button id="sprite-cancel" class="cancel">Cancel</button>
     <div class="camera">
-        <img src="http://192.168.2.51/cam_Ender3Sprite/?action=stream">
+        <img id="cam-sprite"
+            src="http://192.168.2.51/cam_Ender3Sprite/?action=stream">
     </div>
 </div>
 
