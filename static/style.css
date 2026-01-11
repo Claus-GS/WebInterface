@@ -11,6 +11,11 @@ header {
     padding: 20px;
 }
 
+h1 {
+    margin: 0;
+    font-size: 1.5em;
+}
+
 h2 {
     color: #87CEEB;
     margin-top: 0;
@@ -48,6 +53,11 @@ h2 {
     width: 340px;
     box-shadow: 0 0 10px rgba(255,255,255,0.2);
     box-sizing: border-box;
+    transition: width 0.35s ease;
+}
+
+.box:has(.temp-graph-content.open) {
+    width: 600px;
 }
 
 .status {
@@ -69,10 +79,9 @@ h2 {
     margin-top: 10px;
 }
 
-/* 🔵 MATCH HEADER / SPRITE BLUE */
 .progress-fill {
     height: 100%;
-    background: #4682B4;   /* same blue as header */
+    background: #4682B4;
     width: 0%;
     transition: width 0.5s ease;
     display: block;
@@ -105,14 +114,52 @@ button:disabled {
 }
 
 /* ---------- CAMERA ---------- */
+.camera-header {
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 12px 0 0 0;
+    padding: 10px 0;
+    border-top: 1px solid #444;
+    border-bottom: 1px solid #444;
+}
+
+.camera-header:hover {
+    background: rgba(70, 130, 180, 0.1);
+    border-radius: 6px;
+}
+
+.camera-arrow {
+    font-size: 0.9em;
+    transition: transform 0.3s ease;
+}
+
+.camera-arrow.open {
+    transform: rotate(180deg);
+}
+
+.camera-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s ease;
+}
+
+.camera-content.open {
+    max-height: 600px;
+    margin-top: 10px;
+}
+
 .camera {
-    margin-top: 12px;
+    margin-top: 0;
 }
 
 .camera img {
     width: 100%;
     border-radius: 8px;
-    border: 1px solid #333;
+    border: 2px solid #333;
+    transition: border-color 0.3s ease;
 }
 
 /* ---------- TEMP STABILITY DOT ---------- */
@@ -165,20 +212,289 @@ button:disabled {
     margin: 10px 0;
 }
 
+/* ---------- TEMPERATURE GRAPH (COLLAPSIBLE) ---------- */
+.temp-graph-header {
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 12px 0 0 0;
+    padding: 10px 0;
+    border-top: 1px solid #444;
+    border-bottom: 1px solid #444;
+}
+
+.temp-graph-header:hover {
+    background: rgba(70, 130, 180, 0.1);
+    border-radius: 6px;
+}
+
+.temp-graph-arrow {
+    font-size: 0.9em;
+    transition: transform 0.3s ease;
+}
+
+.temp-graph-arrow.open {
+    transform: rotate(180deg);
+}
+
+.temp-graph-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s ease;
+}
+
+.temp-graph-content.open {
+    max-height: 400px;
+    margin-top: 10px;
+}
+
+.temp-graph-canvas {
+    width: 100% !important;
+    height: 280px !important;
+    background: #0a0a0a;
+    border-radius: 8px;
+    border: 1px solid #333;
+    display: block;
+}
+
+/* ---------- FILE NAME (ELLIPSIS FIX) ---------- */
+#minimus-file,
+#sprite-file {
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.85em;
+    color: #cccccc;
+}
+
+#minimus-file:hover,
+#sprite-file:hover {
+    white-space: normal;
+}
+
+/* ---------- AXIS CONTROLLER ---------- */
+.axis-header {
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 12px 0 0 0;
+    padding: 10px 0;
+    border-top: 1px solid #444;
+    border-bottom: 1px solid #444;
+}
+
+.axis-header:hover {
+    background: rgba(70, 130, 180, 0.1);
+    border-radius: 6px;
+}
+
+.axis-arrow {
+    font-size: 0.9em;
+    transition: transform 0.3s ease;
+}
+
+.axis-arrow.open {
+    transform: rotate(180deg);
+}
+
+.axis-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s ease;
+}
+
+.axis-content.open {
+    max-height: 600px;
+    margin-top: 10px;
+}
+
+.axis-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.axis-controls label {
+    text-align: center;
+    font-size: 0.85em;
+    color: #ccc;
+}
+
+.axis-controls input[type="number"] {
+    width: 60px;
+    padding: 4px;
+    background: #2a2a2a;
+    border: 1px solid #444;
+    color: #fff;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.axis-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+}
+
+.axis-section h4 {
+    grid-column: 1 / -1;
+    margin: 8px 0 0 0;
+    font-size: 0.9em;
+    color: #87CEEB;
+}
+
+.axis-section button {
+    padding: 8px 6px;
+    font-size: 0.8em;
+    margin: 0;
+}
+
+.home-all {
+    width: 100%;
+    background-color: #FF9800 !important;
+    margin-top: 8px;
+}
+
+.home-all:hover {
+    background-color: #FFA726 !important;
+}
+
+/* ---------- TABLET ---------- */
+@media (max-width: 1024px) {
+    .box:has(.temp-graph-content.open) {
+        width: 95vw;
+        max-width: 600px;
+    }
+}
+
 /* ---------- MOBILE ---------- */
 @media (max-width: 768px) {
-    .box {
-        width: 92%;
-        margin: 12px auto;
+    header {
+        padding: 15px;
+    }
+
+    h1 {
+        font-size: 1.3em;
+    }
+
+    h2 {
+        font-size: 1.1em;
     }
 
     #system-stats {
-        font-size: 0.8em;
-        gap: 8px;
+        font-size: 0.75em;
+        gap: 6px;
+    }
+
+    .container {
+        margin: 10px;
+    }
+
+    .box {
+        width: 95vw;
+        margin: 10px auto;
+        padding: 15px;
+    }
+
+    .box:has(.temp-graph-content.open) {
+        width: 95vw;
+    }
+
+    .weather-box {
+        width: 95vw;
     }
 
     button {
         width: 100%;
-        margin: 6px 0;
+        margin: 6px 0 4px 0;
+        padding: 10px 12px;
+        font-size: 0.95em;
+    }
+
+    .temp-graph-canvas {
+        height: 220px !important;
+    }
+
+    .temp-graph-header span:first-child {
+        font-size: 0.95em;
+    }
+
+    .camera-header span:first-child {
+        font-size: 0.95em;
+    }
+
+    .camera img {
+        max-height: 250px;
+    }
+
+    .axis-section {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .axis-section h4 {
+        grid-column: 1 / -1;
+    }
+
+    .axis-section button {
+        padding: 6px 4px;
+        font-size: 0.75em;
+    }
+
+    .axis-controls input[type="number"] {
+        width: 50px;
+    }
+}
+
+/* ---------- SMALL MOBILE (< 480px) ---------- */
+@media (max-width: 480px) {
+    header {
+        padding: 12px;
+    }
+
+    h1 {
+        font-size: 1.15em;
+    }
+
+    h2 {
+        font-size: 1em;
+    }
+
+    #clock {
+        font-size: 1.3em;
+    }
+
+    #system-stats {
+        font-size: 0.65em;
+        gap: 4px;
+    }
+
+    .box {
+        width: 95vw;
+        margin: 8px auto;
+        padding: 12px;
+    }
+
+    button {
+        padding: 8px 10px;
+        font-size: 0.85em;
+        margin: 4px 0;
+    }
+
+    .temp-graph-canvas {
+        height: 180px !important;
+    }
+
+    .camera img {
+        max-height: 180px;
+    }
+
+    .weather-content p {
+        margin: 4px 0;
+        font-size: 0.9em;
     }
 }
