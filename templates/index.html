@@ -8,9 +8,235 @@
 
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
 const socket = io();
+
+/* ---------- CAMERA DETECTION ---------- */
+let cameraCheckInterval = null;
+let isPageActive = true;
+
+function refreshCameraStream(printer) {
+    // Minimal delay reconnect - just force new frame with timestamp
+    if (printer === "minimus") {
+        const img = document.querySelector('[src*="cam_Ender3minimus"]');
+        if (img) {
+            // Just add/update timestamp to force reconnect without clearing src
+            img.src = "http://192.168.2.51/cam_Ender3minimus/?action=stream&t=" + Date.now();
+            console.log("🔄 Reconnecting Minimus stream");
+        }
+    } else if (printer === "sprite") {
+        const img = document.querySelector('[src*="cam_Ender3Sprite"]');
+        if (img) {
+            img.src = "http://192.168.2.51/cam_Ender3Sprite/?action=stream&t=" + Date.now();
+            console.log("🔄 Reconnecting Sprite stream");
+        }
+    }
+}
+
+function refreshAllCameraStreams() {
+    // Force reload all camera streams without clearing
+    const minimusImg = document.querySelector('[src*="cam_Ender3minimus"]');
+    const spriteImg = document.querySelector('[src*="cam_Ender3Sprite"]');
+    
+    if (minimusImg && minimusImg.src) {
+        minimusImg.src = "http://192.168.2.51/cam_Ender3minimus/?action=stream&t=" + Date.now();
+        console.log("🔄 Refreshing Minimus camera stream");
+    }
+    
+    if (spriteImg && spriteImg.src) {
+        spriteImg.src = "http://192.168.2.51/cam_Ender3Sprite/?action=stream&t=" + Date.now();
+        console.log("🔄 Refreshing Sprite camera stream");
+    }
+}
+
+function checkCameraConnection(cameraUrl, cameraElement) {
+    // Test camera connectivity using a simple fetch request
+    fetch(cameraUrl, { method: 'HEAD', mode: 'no-cors' })
+        .then(() => {
+            // Camera responds - use normal border
+            cameraElement.parentElement.style.borderColor = "#333";
+            console.log("✅ Camera online:", cameraUrl);
+        })
+        .catch(() => {
+            // Camera offline - red border indicator
+            cameraElement.parentElement.style.borderColor = "#F44336";
+            console.log("❌ Camera offline:", cameraUrl);
+        });
+}
+
+function checkAllCameras() {
+    if (!isPageActive) return;
+    
+    const minimusImg = document.querySelector('[src*="cam_Ender3minimus"]');
+    const spriteImg = document.querySelector('[src*="cam_Ender3Sprite"]');
+    
+    if (minimusImg) {
+        checkCameraConnection("http://192.168.2.51/cam_Ender3minimus/?action=stream", minimusImg);
+    }
+    
+    if (spriteImg) {
+        checkCameraConnection("http://192.168.2.51/cam_Ender3Sprite/?action=stream", spriteImg);
+    }
+}
+
+function startCameraCheck() {
+    // Initial check immediately
+    checkAllCameras();
+    // Then check every 15 seconds
+    if (cameraCheckInterval) clearInterval(cameraCheckInterval);
+    cameraCheckInterval = setInterval(checkAllCameras, 15000);
+}
+
+function stopCameraCheck() {
+    if (cameraCheckInterval) {
+        clearInterval(cameraCheckInterval);
+        cameraCheckInterval = null;
+    }
+}
+
+/* Phone wake/sleep detection */
+document.addEventListener("visibilitychange", () => {
+    isPageActive = !document.hidden;
+    
+    if (isPageActive) {
+        console.log("📱 Page visible - refreshing cameras");
+        setTimeout(() => {
+            refreshAllCameraStreams();
+            checkAllCameras();
+            startCameraCheck();
+        }, 500);
+    } else {
+        console.log("📱 Page hidden - pausing camera checks");
+        stopCameraCheck();
+    }
+});
+
+window.addEventListener("focus", () => {
+    isPageActive = true;
+    console.log("🔄 Window focused - refreshing cameras");
+    setTimeout(() => {
+        refreshAllCameraStreams();
+        checkAllCameras();
+        startCameraCheck();
+    }, 500);
+});
+
+window.addEventListener("blur", () => {
+    isPageActive = false;
+    console.log("😴 Window blurred - pausing camera checks");
+    stopCameraCheck();
+});
+
+/* ---------- CAMERA TOGGLE ---------- */
+function toggleCamera(printer) {
+    const content = document.getElementById(`${printer}-camera-content`);
+    const arrow = document.getElementById(`${printer}-camera-arrow`);
+
+    const open = content.classList.toggle("open");
+    arrow.classList.toggle("open");
+
+    localStorage.setItem(`cameraOpen-${printer}`, open);
+    
+    // Refresh camera stream when opened - minimal delay
+    if (open) {
+        console.log("📹 Camera opened:", printer);
+        setTimeout(() => {
+            refreshCameraStream(printer);
+        }, 50);
+    } else {
+        console.log("📹 Camera closed:", printer);
+    }
+}
+
+/* ---------- AXIS CONTROLLER TOGGLE ---------- */
+function toggleAxisController(printer) {
+    const content = document.getElementById(`${printer}-axis-content`);
+    const arrow = document.getElementById(`${printer}-axis-arrow`);
+
+    const open = content.classList.toggle("open");
+    arrow.classList.toggle("open");
+
+    localStorage.setItem(`axisOpen-${printer}`, open);
+}
+
+/* ---------- AXIS MOVEMENT ---------- */
+function moveAxis(printer, axis, direction) {
+    const distance = document.getElementById(`${printer}-move-distance`)?.value || 10;
+    const request = {
+        command: "jog",
+        axes: {}
+    };
+    request.axes[axis] = direction * parseFloat(distance);
+    
+    fetch(`/api/control/${printer}/jog`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(request)
+    });
+    
+    console.log(`🎯 Moving ${printer} ${axis} by ${direction * distance}mm`);
+}
+
+/* ---------- HOME AXIS ---------- */
+function homeAxis(printer, axis) {
+    const request = {
+        command: "home",
+        axes: [axis]
+    };
+    
+    fetch(`/api/control/${printer}/home`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(request)
+    });
+    
+    console.log(`🏠 Homing ${printer} ${axis}`);
+}
+
+/* ---------- HOME ALL ---------- */
+function homeAll(printer) {
+    const request = {
+        command: "home",
+        axes: ["x", "y", "z"]
+    };
+    
+    fetch(`/api/control/${printer}/home`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(request)
+    });
+    
+    console.log(`🏠 Homing all axes for ${printer}`);
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+    ["minimus", "sprite"].forEach(printer => {
+        // Camera state
+        const cameraOpen = localStorage.getItem(`cameraOpen-${printer}`) === "true";
+        const cameraContent = document.getElementById(`${printer}-camera-content`);
+        const cameraArrow = document.getElementById(`${printer}-camera-arrow`);
+
+        if (cameraOpen) {
+            cameraContent.classList.add("open");
+            cameraArrow.classList.add("open");
+            setTimeout(() => {
+                refreshCameraStream(printer);
+            }, 50);
+        }
+
+        // Axis controller state
+        const axisOpen = localStorage.getItem(`axisOpen-${printer}`) === "true";
+        const axisContent = document.getElementById(`${printer}-axis-content`);
+        const axisArrow = document.getElementById(`${printer}-axis-arrow`);
+
+        if (axisOpen) {
+            axisContent.classList.add("open");
+            axisArrow.classList.add("open");
+        }
+    });
+});
 
 /* ---------- CLOCK ---------- */
 function updateClock() {
@@ -39,59 +265,151 @@ function togglePauseResume(printer, state) {
 function toggleWeather() {
     const content = document.getElementById("weather-content");
     const arrow = document.getElementById("weather-arrow");
+
     const open = content.classList.toggle("open");
     arrow.textContent = open ? "▼" : "▶";
-    localStorage.setItem("weatherOpen", open);
-}
-function refreshCamera(id) {
-    const img = document.getElementById(id);
-    if (!img) return;
 
-    const base = img.src.split("?")[0];
-    img.src = base + "?action=stream&t=" + Date.now();
+    localStorage.setItem("weatherOpen", open);
 }
 
 window.addEventListener("DOMContentLoaded", () => {
     const open = localStorage.getItem("weatherOpen") === "true";
+    const content = document.getElementById("weather-content");
+    const arrow = document.getElementById("weather-arrow");
+
     if (open) {
-        document.getElementById("weather-content").classList.add("open");
-        document.getElementById("weather-arrow").textContent = "▼";
+        content.classList.add("open");
+        arrow.textContent = "▼";
     }
-
-    // kick cameras once on load
-    refreshCamera("cam-minimus");
-    refreshCamera("cam-sprite");
+    
+    // Start camera checks
+    startCameraCheck();
 });
 
-// refresh every 30 seconds
-setInterval(() => {
-    refreshCamera("cam-minimus");
-    refreshCamera("cam-sprite");
-}, 30000);
+/* ---------- TEMP GRAPH TOGGLE ---------- */
+function toggleTempGraph(printer) {
+    const content = document.getElementById(`${printer}-graph-content`);
+    const arrow = document.getElementById(`${printer}-graph-arrow`);
 
-// refresh when phone unlocks / tab becomes visible again
-document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) {
-        refreshCamera("cam-minimus");
-        refreshCamera("cam-sprite");
-    }
+    const open = content.classList.toggle("open");
+    arrow.classList.toggle("open");
+
+    localStorage.setItem(`tempGraphOpen-${printer}`, open);
+
+    setTimeout(() => {
+        if (chartInstances[printer]) {
+            chartInstances[printer].resize();
+        }
+    }, 350);
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+    ["minimus", "sprite"].forEach(printer => {
+        const open = localStorage.getItem(`tempGraphOpen-${printer}`) === "true";
+        const content = document.getElementById(`${printer}-graph-content`);
+        const arrow = document.getElementById(`${printer}-graph-arrow`);
+
+        if (open) {
+            content.classList.add("open");
+            arrow.classList.add("open");
+        }
+    });
 });
 
-
-
-/* ---------- TEMP HISTORY ---------- */
+/* ---------- TEMP HISTORY & CHARTS ---------- */
 const tempHistory = { minimus: [], sprite: [] };
+const chartInstances = { minimus: null, sprite: null };
+
+function initTempChart(printer) {
+    const canvas = document.getElementById(`${printer}-temp-canvas`);
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext("2d");
+    
+    chartInstances[printer] = new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: "Hotend (°C)",
+                    data: [],
+                    borderColor: "#FF6B6B",
+                    backgroundColor: "rgba(255, 107, 107, 0.1)",
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    pointBackgroundColor: "#FF6B6B",
+                    tension: 0.4,
+                    fill: true
+                },
+                {
+                    label: "Bed (°C)",
+                    data: [],
+                    borderColor: "#4CAF50",
+                    backgroundColor: "rgba(76, 175, 80, 0.1)",
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    pointBackgroundColor: "#4CAF50",
+                    tension: 0.4,
+                    fill: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: {
+                duration: 0
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    labels: { 
+                        color: "#e0e0e0", 
+                        font: { size: 12 },
+                        padding: 15
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    min: 0,
+                    max: 300,
+                    ticks: { 
+                        color: "#999", 
+                        stepSize: 50,
+                        font: { size: 11 }
+                    },
+                    grid: { color: "#333" }
+                },
+                x: {
+                    ticks: { 
+                        color: "#999", 
+                        maxTicksLimit: 8,
+                        font: { size: 11 }
+                    },
+                    grid: { color: "#333" }
+                }
+            }
+        }
+    });
+}
 
 /* ---------- SOCKET DATA ---------- */
 socket.on("update", d => {
 
     /* ===== SYSTEM ===== */
     if (d.system) {
-        document.getElementById("sys-cpu").textContent = d.system.cpu.toFixed(0);
+        document.getElementById("sys-cpu").textContent =
+            d.system.cpu.toFixed(0);
+
         document.getElementById("sys-mem").textContent =
             `${d.system.mem_used}/${d.system.mem_total} GB (${d.system.mem_percent}%)`;
+
         document.getElementById("sys-disk").textContent =
             `${d.system.disk_used}/${d.system.disk_total} GB (${d.system.disk_percent}%)`;
+
         const u = d.system.uptime;
         document.getElementById("sys-up").textContent =
             `${Math.floor(u / 3600)}h ${Math.floor((u % 3600) / 60)}m`;
@@ -121,80 +439,97 @@ socket.on("update", d => {
     function updatePrinter(prefix, printer, job) {
         const status = printer?.state?.text || "Offline";
         const state = status.toLowerCase();
+        const progress =
+            typeof job?.progress?.completion === "number"
+            ? job.progress.completion
+            : 0;
 
-        /* ---------- STATUS ---------- */
         const s = document.getElementById(prefix + "-status");
         s.textContent = status;
         s.className = "status " + stateClass(status);
 
-        /* ---------- FILE ---------- */
         const f = document.getElementById(prefix + "-file");
         if (job?.job?.file?.name) {
             f.textContent = job.job.file.name;
             f.style.display = "block";
-        } else {
-            f.style.display = "none";
-        }
+        } else f.style.display = "none";
 
-        /* ---------- TEMPS ---------- */
+        let hotendTemp = 0;
+        let bedTemp = 0;
+
         if (printer?.temperature?.tool0) {
-            const t = printer.temperature.tool0.actual;
-            document.getElementById(prefix + "-hotend").textContent = t.toFixed(1) + " °C";
+            hotendTemp = printer.temperature.tool0.actual;
+            document.getElementById(prefix + "-hotend").textContent =
+                hotendTemp.toFixed(1) + " °C";
+
+            const hist = tempHistory[prefix];
+            hist.push(hotendTemp);
+            if (hist.length > 60) hist.shift();
+
+            const delta = Math.max(...hist) - Math.min(...hist);
+            const dot = document.getElementById(prefix + "-temp-dot");
+            dot.className = "temp-dot";
+            if (delta < 1) dot.classList.add("temp-stable");
+            else if (delta < 4) dot.classList.add("temp-warn");
+            else dot.classList.add("temp-bad");
         }
+
         if (printer?.temperature?.bed) {
+            bedTemp = printer.temperature.bed.actual;
             document.getElementById(prefix + "-bed").textContent =
-                printer.temperature.bed.actual.toFixed(1) + " °C";
+                bedTemp.toFixed(1) + " °C";
         }
 
-        /* ---------- PROGRESS (FIXED) ---------- */
-        let progress = 0;
+        /* Update temperature graph */
+        if (chartInstances[prefix]) {
+            const chart = chartInstances[prefix];
+            const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+            
+            chart.data.labels.push(now);
+            chart.data.datasets[0].data.push(hotendTemp);
+            chart.data.datasets[1].data.push(bedTemp);
 
-        if (typeof job?.progress?.completion === "number") {
-            progress = job.progress.completion;
-            if (progress > 0 && progress <= 1) progress *= 100;
+            if (chart.data.labels.length > 60) {
+                chart.data.labels.shift();
+                chart.data.datasets[0].data.shift();
+                chart.data.datasets[1].data.shift();
+            }
+
+            chart.update("none");
         }
 
-        if (
-            (!progress || progress <= 0) &&
-            typeof job?.progress?.filepos === "number" &&
-            typeof job?.job?.file?.size === "number" &&
-            job.job.file.size > 0
-        ) {
-            progress = (job.progress.filepos / job.job.file.size) * 100;
-        }
+        document.getElementById(prefix + "-bar").style.width =
+            progress.toFixed(1) + "%";
 
-        if (!Number.isFinite(progress)) progress = 0;
-        progress = Math.max(0, Math.min(100, progress));
-
-        const bar = document.getElementById(prefix + "-bar");
-        bar.style.width =
-            progress > 0 ? Math.max(progress, 4).toFixed(1) + "%" : "0%";
-
-
-        /* ---------- TEXT ---------- */
         const p = document.getElementById(prefix + "-progress");
+
         if (state.includes("print") && job?.progress?.printTimeLeft) {
             const left = job.progress.printTimeLeft;
+            const elapsed = job.progress.printTime || 0;
             const finish = new Date(Date.now() + left * 1000).toLocaleTimeString();
+
             p.textContent =
-                `${progress.toFixed(1)}% · ${Math.floor(left / 60)}m left · Finishes ${finish}`;
-        } else if (state.includes("pause")) {
+                `${progress.toFixed(1)}% · ${Math.floor(left / 60)}m left · ${Math.floor(elapsed / 60)}m elapsed · Finishes ${finish}`;
+        }
+        else if (state.includes("pause")) {
             p.textContent = `${progress.toFixed(1)}% · Paused`;
-        } else {
+        }
+        else {
             p.textContent = "";
         }
 
-        /* ---------- BUTTONS ---------- */
         const toggleBtn = document.getElementById(prefix + "-toggle");
         if (state.includes("print")) {
             toggleBtn.style.display = "inline-block";
             toggleBtn.textContent = "Pause";
             toggleBtn.onclick = () => togglePauseResume(prefix, state);
-        } else if (state.includes("pause")) {
+        }
+        else if (state.includes("pause")) {
             toggleBtn.style.display = "inline-block";
             toggleBtn.textContent = "Resume";
             toggleBtn.onclick = () => togglePauseResume(prefix, state);
-        } else {
+        }
+        else {
             toggleBtn.style.display = "none";
         }
 
@@ -205,13 +540,21 @@ socket.on("update", d => {
     updatePrinter("minimus", d.minimus_printer, d.minimus_job);
     updatePrinter("sprite", d.sprite_printer, d.sprite_job);
 });
+
+/* Initialize charts on page load */
+window.addEventListener("DOMContentLoaded", () => {
+    initTempChart("minimus");
+    initTempChart("sprite");
+});
 </script>
 </head>
 
 <body>
+
 <header>
     <h1>Claus' 3D Printer Dashboard</h1>
     <div id="clock">--:--:--</div>
+
     <div id="system-stats">
         🧠 CPU <span id="sys-cpu">--</span>% |
         💾 RAM <span id="sys-mem">--</span> |
@@ -248,15 +591,70 @@ socket.on("update", d => {
     <h2>Minimus</h2>
     <p id="minimus-file" style="display:none;"></p>
     <p>Status: <span id="minimus-status">--</span></p>
-    <p>Hotend: <span id="minimus-hotend">--</span></p>
+    <p>Hotend: <span id="minimus-hotend">--</span><span id="minimus-temp-dot" class="temp-dot"></span></p>
     <p>Bed: <span id="minimus-bed">--</span></p>
+
     <div class="progress"><div id="minimus-bar" class="progress-fill"></div></div>
     <p id="minimus-progress"></p>
+
     <button id="minimus-toggle" style="display:none;">Pause</button>
-    <button id="minimus-cancel" class="cancel">Cancel</button>
-    <div class="camera">
-        <img id="cam-minimus"
-            src="http://192.168.2.51/cam_Ender3minimus/?action=stream">
+    <button id="minimus-cancel" class="cancel"
+    onclick="if (confirm('Cancel Minimus print?')) fetch('/api/control/minimus/cancel', { method: 'POST' })">
+    Cancel
+    </button>
+
+    <!-- Temperature Graph -->
+    <div class="temp-graph-header" onclick="toggleTempGraph('minimus')">
+        <span>📈 Temperature Graph</span>
+        <span id="minimus-graph-arrow" class="temp-graph-arrow">▶</span>
+    </div>
+    <div id="minimus-graph-content" class="temp-graph-content">
+        <canvas id="minimus-temp-canvas" class="temp-graph-canvas" width="300" height="250"></canvas>
+    </div>
+
+    <!-- Camera -->
+    <div class="camera-header" onclick="toggleCamera('minimus')">
+        <span>📹 Camera</span>
+        <span id="minimus-camera-arrow" class="camera-arrow">▶</span>
+    </div>
+    <div id="minimus-camera-content" class="camera-content">
+        <div class="camera">
+            <img src="http://192.168.2.51/cam_Ender3minimus/?action=stream">
+        </div>
+    </div>
+
+    <!-- Axis Controller -->
+    <div class="axis-header" onclick="toggleAxisController('minimus')">
+        <span>🎮 Axis Control</span>
+        <span id="minimus-axis-arrow" class="axis-arrow">▶</span>
+    </div>
+    <div id="minimus-axis-content" class="axis-content">
+        <div class="axis-controls">
+            <label>Distance (mm): <input type="number" id="minimus-move-distance" value="10" min="0.1" max="50" step="0.1"></label>
+            
+            <div class="axis-section">
+                <h4>X Axis</h4>
+                <button onclick="moveAxis('minimus', 'x', -1)">◄ X-</button>
+                <button onclick="homeAxis('minimus', 'x')">🏠 Home X</button>
+                <button onclick="moveAxis('minimus', 'x', 1)">X+ ►</button>
+            </div>
+
+            <div class="axis-section">
+                <h4>Y Axis</h4>
+                <button onclick="moveAxis('minimus', 'y', -1)">◄ Y-</button>
+                <button onclick="homeAxis('minimus', 'y')">🏠 Home Y</button>
+                <button onclick="moveAxis('minimus', 'y', 1)">Y+ ►</button>
+            </div>
+
+            <div class="axis-section">
+                <h4>Z Axis</h4>
+                <button onclick="moveAxis('minimus', 'z', -1)">▼ Z-</button>
+                <button onclick="homeAxis('minimus', 'z')">🏠 Home Z</button>
+                <button onclick="moveAxis('minimus', 'z', 1)">Z+ ▲</button>
+            </div>
+
+            <button class="home-all" onclick="homeAll('minimus')">🏠 Home All</button>
+        </div>
     </div>
 </div>
 
@@ -264,15 +662,70 @@ socket.on("update", d => {
     <h2>Sprite</h2>
     <p id="sprite-file" style="display:none;"></p>
     <p>Status: <span id="sprite-status">--</span></p>
-    <p>Hotend: <span id="sprite-hotend">--</span></p>
+    <p>Hotend: <span id="sprite-hotend">--</span><span id="sprite-temp-dot" class="temp-dot"></span></p>
     <p>Bed: <span id="sprite-bed">--</span></p>
+
     <div class="progress"><div id="sprite-bar" class="progress-fill"></div></div>
     <p id="sprite-progress"></p>
+
     <button id="sprite-toggle" style="display:none;">Pause</button>
-    <button id="sprite-cancel" class="cancel">Cancel</button>
-    <div class="camera">
-        <img id="cam-sprite"
-            src="http://192.168.2.51/cam_Ender3Sprite/?action=stream">
+    <button id="sprite-cancel" class="cancel"
+    onclick="if (confirm('Cancel Sprite print?')) fetch('/api/control/sprite/cancel', { method: 'POST' })">
+    Cancel
+    </button>
+
+    <!-- Temperature Graph -->
+    <div class="temp-graph-header" onclick="toggleTempGraph('sprite')">
+        <span>📈 Temperature Graph</span>
+        <span id="sprite-graph-arrow" class="temp-graph-arrow">▶</span>
+    </div>
+    <div id="sprite-graph-content" class="temp-graph-content">
+        <canvas id="sprite-temp-canvas" class="temp-graph-canvas" width="300" height="250"></canvas>
+    </div>
+
+    <!-- Camera -->
+    <div class="camera-header" onclick="toggleCamera('sprite')">
+        <span>📹 Camera</span>
+        <span id="sprite-camera-arrow" class="camera-arrow">▶</span>
+    </div>
+    <div id="sprite-camera-content" class="camera-content">
+        <div class="camera">
+            <img src="http://192.168.2.51/cam_Ender3Sprite/?action=stream">
+        </div>
+    </div>
+
+    <!-- Axis Controller -->
+    <div class="axis-header" onclick="toggleAxisController('sprite')">
+        <span>🎮 Axis Control</span>
+        <span id="sprite-axis-arrow" class="axis-arrow">▶</span>
+    </div>
+    <div id="sprite-axis-content" class="axis-content">
+        <div class="axis-controls">
+            <label>Distance (mm): <input type="number" id="sprite-move-distance" value="10" min="0.1" max="50" step="0.1"></label>
+            
+            <div class="axis-section">
+                <h4>X Axis</h4>
+                <button onclick="moveAxis('sprite', 'x', -1)">◄ X-</button>
+                <button onclick="homeAxis('sprite', 'x')">🏠 Home X</button>
+                <button onclick="moveAxis('sprite', 'x', 1)">X+ ►</button>
+            </div>
+
+            <div class="axis-section">
+                <h4>Y Axis</h4>
+                <button onclick="moveAxis('sprite', 'y', -1)">◄ Y-</button>
+                <button onclick="homeAxis('sprite', 'y')">🏠 Home Y</button>
+                <button onclick="moveAxis('sprite', 'y', 1)">Y+ ►</button>
+            </div>
+
+            <div class="axis-section">
+                <h4>Z Axis</h4>
+                <button onclick="moveAxis('sprite', 'z', -1)">▼ Z-</button>
+                <button onclick="homeAxis('sprite', 'z')">🏠 Home Z</button>
+                <button onclick="moveAxis('sprite', 'z', 1)">Z+ ▲</button>
+            </div>
+
+            <button class="home-all" onclick="homeAll('sprite')">🏠 Home All</button>
+        </div>
     </div>
 </div>
 
