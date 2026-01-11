@@ -5,7 +5,7 @@ import time
 import requests
 import psutil
 
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request
 from flask_socketio import SocketIO
 
 app = Flask(__name__)
@@ -151,7 +151,7 @@ def index():
     return render_template("index.html")
 
 
-# ---------------- FIXED CONTROL ENDPOINT ----------------
+# ---------------- PRINTER CONTROL ENDPOINT ----------------
 @app.route("/api/control/<printer>/<action>", methods=["POST"])
 def control(printer, action):
     if printer == "minimus":
@@ -186,6 +186,84 @@ def control(printer, action):
     except Exception as e:
         print("Control error:", e)
         return jsonify({"ok": False}), 500
+
+
+# ---------------- AXIS JOG ENDPOINT ----------------
+@app.route("/api/control/<printer>/jog", methods=["POST"])
+def jog(printer):
+    if printer == "minimus":
+        url, headers = MINIMUS_URL, HEADERS_MINIMUS
+    elif printer == "sprite":
+        url, headers = SPRITE_URL, HEADERS_SPRITE
+    else:
+        return jsonify({"error": "bad printer"}), 400
+
+    try:
+        data = request.get_json()
+        
+        # Build jog payload for OctoPrint
+        payload = {
+            "command": "jog",
+            "x": data.get("axes", {}).get("x", 0),
+            "y": data.get("axes", {}).get("y", 0),
+            "z": data.get("axes", {}).get("z", 0),
+            "speed": 3000  # OctoPrint jog speed in mm/min
+        }
+
+        response = requests.post(
+            f"{url}/api/printer/printhead",
+            headers=headers,
+            json=payload,
+            timeout=5
+        )
+
+        if response.status_code == 204:
+            print(f"🎯 {printer} jogging: {payload}")
+            return jsonify({"ok": True})
+        else:
+            return jsonify({"error": "Failed to jog"}), 500
+
+    except Exception as e:
+        print(f"Jog error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# ---------------- AXIS HOME ENDPOINT ----------------
+@app.route("/api/control/<printer>/home", methods=["POST"])
+def home(printer):
+    if printer == "minimus":
+        url, headers = MINIMUS_URL, HEADERS_MINIMUS
+    elif printer == "sprite":
+        url, headers = SPRITE_URL, HEADERS_SPRITE
+    else:
+        return jsonify({"error": "bad printer"}), 400
+
+    try:
+        data = request.get_json()
+        axes = data.get("axes", ["x", "y", "z"])
+        
+        # Build home payload for OctoPrint
+        payload = {
+            "command": "home",
+            "axes": axes
+        }
+
+        response = requests.post(
+            f"{url}/api/printer/printhead",
+            headers=headers,
+            json=payload,
+            timeout=5
+        )
+
+        if response.status_code == 204:
+            print(f"🏠 {printer} homing: {axes}")
+            return jsonify({"ok": True})
+        else:
+            return jsonify({"error": "Failed to home"}), 500
+
+    except Exception as e:
+        print(f"Home error: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":
