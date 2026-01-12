@@ -125,8 +125,8 @@ WEATHER_LON = your-longitute"
 `POST /api/control//`
 
 ### Parameters:
--printer: printer1 or printer2
--action: pause, resume, cancel
+- printer: printer1 or printer2
+- action: pause, resume, cancel
 
 Response:
 ```{ “ok”: true }```
@@ -221,17 +221,17 @@ eventlet==0.33.3
 
 ### Styling
 
-Edit `static/style.css` to adjust layout, colors, fonts, and responsive breakpoints.
+- Edit `static/style.css` to adjust layout, colors, fonts, and responsive breakpoints.
 
 ### Adding Additional Printers
--Add new printer URLs and API keys in WebInterface.py
--Fetch printer data in the update loop
--Emit new printer data via Socket.IO
--Duplicate the printer section in index.html
+- Add new printer URLs and API keys in WebInterface.py
+- Fetch printer data in the update loop
+- Emit new printer data via Socket.IO
+- Duplicate the printer section in index.html
 
 ### Update Frequency
 
-Modify the update interval in `WebInterface.py`:
+- Modify the update interval in `WebInterface.py`:
 
 `socketio.sleep(2)`
 
@@ -247,7 +247,7 @@ Modify the update interval in `WebInterface.py`:
 
 ## License
 
-MIT License
+- MIT License
 
 ---
 
@@ -264,4 +264,4 @@ MIT License
 
 ## Additional Resources
 
-OctoPrint documentation: `https://octoprint.org`
+- OctoPrint documentation: `https://octoprint.org`
