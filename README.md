@@ -45,12 +45,12 @@ A real-time web-based dashboard for monitoring and controlling multiple 3D print
 ---
 
 ## Project Structure
--WebInterface/
+`-WebInterface/
   -WebInterface.py
   -templates/
     -index.html
   -static/
-    -style.css
+    -style.css`
 ---
 
 ## Installation
@@ -64,12 +64,12 @@ A real-time web-based dashboard for monitoring and controlling multiple 3D print
 
 1. **Clone the repository**
 
-git clone <repository-url> cd printer-dashboard
+`git clone <repository-url> cd printer-dashboard`
 
 
 2. **Create a virtual environment**
 
-python -m venv venv source venv/bin/activate  # On Windows: venv\Scripts\activate
+`python -m venv venv source venv/bin/activate  # On Windows: venv\Scripts\activate`
 
 3. **Install dependencies**
 
@@ -80,11 +80,11 @@ pip install -r requirements.txt
 Edit `WebInterface.py` and update:
 
 OctoPrint Instances
-printer1_URL = "http://your-printer1-ip:5000" printer2_URL  = "http://your-printer2-ip:5001"
-printer1_KEY = "your-printer1-api-key" printer2_KEY  = "your-printer2-api-key"
+`printer1_URL = "http://your-printer1-ip:5000" printer2_URL  = "http://your-printer2-ip:5001"`
+`printer1_KEY = "your-printer1-api-key" printer2_KEY  = "your-printer2-api-key"`
 
 Weather API Configuration
-WEATHER_API_KEY = "your-openweathermap-key" WEATHER_LAT = 44.3091      # Your latitude WEATHER_LON = -78.3197     # Your longitude
+`WEATHER_API_KEY = "your-openweathermap-key" WEATHER_LAT = 44.3091      # Your latitude WEATHER_LON = -78.3197     # Your longitude`
 
 5. **Update Camera URLs**
 
@@ -144,22 +144,22 @@ Test camera connectivity:
 
 ### Job Control
 
-POST /api/control/<printer>/<action>
+`POST /api/control/<printer>/<action>
 Parameters: printer: "printer1" or "printer2" action:  "pause", "resume", or "cancel"
-Response: { "ok": true }
+Response: { "ok": true }`
 
 ### Axis Movement (Jog)
 
-POST /api/control/<printer>/jog
+`POST /api/control/<printer>/jog
 Request body: { "command": "jog", "axes": { "x": 10,   // mm (positive = right) "y": -5,   // mm (positive = forward) "z": 2     // mm (positive = up) } }
-Response: { "ok": true }
+Response: { "ok": true }`
 
 ### Homing
 
 
-POST /api/control/<printer>/home
+`POST /api/control/<printer>/home
 Request body: { "command": "home", "axes": ["x", "y", "z"]  // or ["x"], ["y"], ["z"] for individual axes }
-Response: { "ok": true }
+Response: { "ok": true }`
 
 
 ---
@@ -187,10 +187,10 @@ The dashboard uses **Socket.IO** to receive real-time updates every 2 seconds:
 ---
 
 ## Dependencies
-flask==2.3.0 flask-socketio==5.3.0 python-socketio==5.9.0 python-engineio==4.7.0 requests==2.31.0 psutil==5.9.5 eventlet==0.33.3
+`flask==2.3.0 flask-socketio==5.3.0 python-socketio==5.9.0 python-engineio==4.7.0 requests==2.31.0 psutil==5.9.5 eventlet==0.33.3`
 
 
-Install with:  pip install -r requirements.txt
+`Install with:  pip install -r requirements.txt`
 
 ---
 
@@ -258,24 +258,24 @@ To add a third printer:
 1. **Add configuration in `WebInterface.py`:**
 
 
-THIRD_PRINTER_URL = "http://printer-ip:5002" THIRD_PRINTER_KEY = "api-key" HEADERS_THIRD = {"X-Api-Key": THIRD_PRINTER_KEY}
+`THIRD_PRINTER_URL = "http://printer-ip:5002" THIRD_PRINTER_KEY = "api-key" HEADERS_THIRD = {"X-Api-Key": THIRD_PRINTER_KEY}`
 
 
 2. **Update `data_loop()` function:**
 
-tp, tj = fetch_octoprint(THIRD_PRINTER_URL, HEADERS_THIRD)
+`tp, tj = fetch_octoprint(THIRD_PRINTER_URL, HEADERS_THIRD)`
 
 
 3. **Add to emitted data:**
 
-socketio.emit("update", { # ... existing data ... "third_printer": tp, "third_job": tj, })
+`socketio.emit("update", { # ... existing data ... "third_printer": tp, "third_job": tj, })`
 
 
 4. **Duplicate printer section in HTML** and update printer name
 
 ### Changing Update Frequency
 In `WebInterface.py`, modify the sleep interval:
-socketio.sleep(2)  # Change 2 to desired seconds
+`socketio.sleep(2)  # Change 2 to desired seconds`
 
 ---
 
