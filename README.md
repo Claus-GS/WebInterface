@@ -70,9 +70,10 @@ WebInterface/
 ## Installation
 
 Prerequisites
--•	Python 3.7 or newer
--•	Two or more OctoPrint instances running on the same network
--•	OpenWeatherMap API key (free tier supported)
+- Python 3.7 or newer
+- Two or more OctoPrint instances running on the same network
+- OpenWeatherMap API key (free tier supported)
+
 ---
 ## Setup
 
@@ -91,7 +92,7 @@ Install dependencies:
 
 `pip install -r requirements.txt`
 
-Configure OctoPrint instances in WebInterface.py:
+Configure OctoPrint instances in `WebInterface.py`:
 ```
 printer1_URL = “http://printer1-ip:5000”
 printer2_URL = “http://printer2-ip:5001”
@@ -106,7 +107,7 @@ WEATHER_LAT = "your-latitude"
 WEATHER_LON = your-longitute"
 ```
 
-Configure camera URLs in templates/index.html:
+Configure camera URLs in `templates/index.html`:
 ```
 <img src="http://printer-ip:8080/?action=stream">
 ```
@@ -115,7 +116,7 @@ Run the application:
 `python WebInterface.py`
 
 Dashboard URL:
-`http://localhost:
+`http://localhost:`
 
 ## API Endpoints
 
@@ -124,8 +125,8 @@ Print Control
 `POST /api/control//`
 
 Parameters:
-	•	printer: printer1 or printer2
-	•	action: pause, resume, cancel
+-printer: printer1 or printer2
+-action: pause, resume, cancel
 
 Response:
 ```{ “ok”: true }```
@@ -161,19 +162,19 @@ Request body:
 ## Real-Time Updates
 
 The dashboard uses Socket.IO to push updates every two seconds, including:
-	•	Printer and job status
-	•	Temperature readings
-	•	System performance metrics
-	•	Cached weather data (refreshed every 10 minutes)
+- Printer and job status
+- Temperature readings
+- System performance metrics
+- Cached weather data (refreshed every 10 minutes)
 
 ---
 
 ## Browser Compatibility
-	•	Chrome / Chromium (latest)
-	•	Firefox (latest)
-	•	Safari (latest)
-	•	Edge (latest)
-	•	Mobile browsers (iOS Safari, Chrome for Android)
+- Chrome / Chromium (latest)
+= Firefox (latest)
+= Safari (latest)
+= Edge (latest)
+= Mobile browsers (iOS Safari, Chrome for Android)
 
 ---
 
@@ -192,27 +193,27 @@ eventlet==0.33.3
 ## Troubleshooting
 
 Camera Feed Not Loading
-	-•	Verify camera URLs are correct
-	-•	Test camera streams directly in a browser
-	-•	Check firewall and network access
-	-•	Inspect browser console for errors
+- Verify camera URLs are correct
+- Test camera streams directly in a browser
+- Check firewall and network access
+- Inspect browser console for errors
 
 Printer Offline or Not Updating
-	-•	Verify OctoPrint URLs and API keys
-	-•	Ensure OctoPrint is running and reachable
-	-•	Confirm API key permissions
-	-•	Check terminal output and browser console
+- Verify OctoPrint URLs and API keys
+- Ensure OctoPrint is running and reachable
+- Confirm API key permissions
+- Check terminal output and browser console
 
 Weather Data Issues
-	-•	Verify API key and geographic coordinates
-	-•	Confirm internet connectivity
-	-•	Check OpenWeatherMap rate limits
-	-•	Review application logs
+- Verify API key and geographic coordinates
+- Confirm internet connectivity
+- Check OpenWeatherMap rate limits
+- Review application logs
 
 Axis Control Not Responding
-	-•	Ensure printer is idle
-	-•	Verify firmware supports jog commands
-	-•	Confirm API control permissions
+- Ensure printer is idle
+- Verify firmware supports jog commands
+- Confirm API control permissions
 
 ---
 
@@ -223,24 +224,24 @@ Styling
 Edit `static/style.css` to adjust layout, colors, fonts, and responsive breakpoints.
 
 Adding Additional Printers
-	-•	Add new printer URLs and API keys in WebInterface.py
-	-•	Fetch printer data in the update loop
-	-•	Emit new printer data via Socket.IO
-	-•	Duplicate the printer section in index.html
+-Add new printer URLs and API keys in WebInterface.py
+-Fetch printer data in the update loop
+-Emit new printer data via Socket.IO
+-Duplicate the printer section in index.html
 
 Update Frequency
 
-Modify the update interval in WebInterface.py:
+Modify the update interval in `WebInterface.py`:
 
 `socketio.sleep(2)`
 
 ---
 
 ## Performance
-	-•	Update interval: 2 seconds (configurable)
-	-•	Weather cache: 10 minutes
-	-•	Typical memory usage: 50–100 MB
-	-•	Optimized for mobile and low-bandwidth connections
+- Update interval: 2 seconds (configurable)
+- Weather cache: 10 minutes
+- Typical memory usage: 50–100 MB
+- Optimized for mobile and low-bandwidth connections
 
 ---
 
@@ -251,13 +252,13 @@ MIT License
 ---
 
 ## Future Enhancements
-	-•	Multi-printer queue management
-	-•	Print history and analytics
-	-•	Filament usage tracking
-	-•	Notification system (email/SMS)
-	-•	Bed leveling assistance
-	-•	Remote file upload
-	-•	Light/dark theme toggle
+- Multi-printer queue management
+- Print history and analytics
+- Filament usage tracking
+- Notification system (email/SMS)
+- Bed leveling assistance
+- Remote file upload
+- Light/dark theme toggle
 
 ---
 
