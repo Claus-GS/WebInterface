@@ -1,5 +1,5 @@
 # 3D Printer Dashboard
-
+<img width="2163" height="1111" alt="image" src="https://github.com/user-attachments/assets/32ccee51-551f-494a-ae79-17da808919ce" />
 A real-time web-based dashboard for monitoring and controlling multiple 3D printers running OctoPrint. Built with Flask, Socket.IO, and Chart.js.
 
 ## Features
