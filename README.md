@@ -12,43 +12,43 @@ The 3D Printer Dashboard provides live printer status, temperature monitoring, p
 
 ## Features
 
-Printer Management
+Printer Management```
 	•	Real-time printer status monitoring (printing, paused, idle, offline)
 	•	Live hotend and bed temperature tracking with stability indicators
 	•	Print progress visualization with estimated time remaining
 	•	Pause, resume, and cancel print functionality
 	•	Manual XYZ axis jog controls with configurable movement distance
 	•	Axis homing (individual axes or all axes)
-
-Monitoring and Analytics
+```
+Monitoring and Analytics```
 	•	Real-time temperature graph displaying recent hotend and bed readings
 	•	Collapsible UI sections for improved layout organization
 	•	Persistent UI state using browser local storage
-
-Live Camera Feed
+```
+Live Camera Feed```
 	•	MJPEG-based live camera streams per printer
 	•	Automatic reconnection on device wake or network interruption
 	•	Visual status indicator for camera connectivity
-
-Weather Integration
+```
+Weather Integration```
 	•	Local weather data including temperature, humidity, wind, and pressure
 	•	Air quality metrics (AQI and PM2.5)
 	•	Forecast data with precipitation probability and daily min/max temperatures
 	•	Sunrise and sunset times
-
-System Monitoring
+```
+System Monitoring```
 	•	CPU usage
 	•	Memory usage
 	•	Disk usage
 	•	System uptime
 	•	Live clock display
-
-Responsive Design
+```
+Responsive Design```
 	•	Fully responsive layout for desktop, tablet, and mobile devices
 	•	Dark theme optimized for extended use
 	•	Touch-friendly controls
 	•	Adaptive grid layout
-
+```
 ---
 
 ## Project Structure
