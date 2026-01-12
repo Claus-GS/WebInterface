@@ -90,7 +90,7 @@ WEATHER_API_KEY = "your-openweathermap-key" WEATHER_LAT = 44.3091      # Your la
 
 In `templates/index.html`, find and replace:
 
-**<!-- Replace these with your actual camera URLs --> <img src="http://localhost:5000/<printername>/?action=stream"> <img src="http://localhost:5001<printername>/?action=stream">**
+-- Replace these with your actual camera URLs --> `<img src="http://localhost:5000/<printername>/?action=stream"> <img src="http://localhost:5001<printername>/?action=stream">**`
 
 Common camera URL formats:
 - **OctoPrint webcam**: `http://printer-ip:8080/?action=stream`
