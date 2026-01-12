@@ -45,7 +45,6 @@ A real-time web-based dashboard for monitoring and controlling multiple 3D print
 ---
 
 ## Project Structure
-```text
 WebInterface/
   WebInterface.py
   templates/
