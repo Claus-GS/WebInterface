@@ -45,12 +45,12 @@ A real-time web-based dashboard for monitoring and controlling multiple 3D print
 ---
 
 ## Project Structure
-WebInterface/
-  WebInterface.py
-  templates/
-    index.html
-  static/
-    style.css
+-WebInterface/
+  -WebInterface.py
+  -templates/
+    -index.html
+  -static/
+    -style.css
 ---
 
 ## Installation
