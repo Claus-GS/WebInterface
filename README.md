@@ -45,6 +45,7 @@ A real-time web-based dashboard for monitoring and controlling multiple 3D print
 ---
 
 ## Project Structure
+
 `-WebInterface/
   -WebInterface.py
   -templates/
@@ -73,7 +74,7 @@ A real-time web-based dashboard for monitoring and controlling multiple 3D print
 
 3. **Install dependencies**
 
-pip install -r requirements.txt
+`pip install -r requirements.txt`
 
 4. **Configure OctoPrint URLs and API Keys**
 
