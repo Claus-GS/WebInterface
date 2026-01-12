@@ -1,294 +1,261 @@
-# 3D Printer Dashboard
-<img width="2163" height="1111" alt="image" src="https://github.com/user-attachments/assets/32ccee51-551f-494a-ae79-17da808919ce" />
-A real-time web-based dashboard for monitoring and controlling multiple 3D printers running OctoPrint. Built with Flask, Socket.IO, and Chart.js.
+## 3D Printer Dashboard
+---
+A real-time, web-based dashboard for monitoring and controlling multiple 3D printers running OctoPrint. The application is built using Flask, Socket.IO, and Chart.js, providing centralized visibility and control across multiple printers from a single interface.
+
+---
+
+## Overview
+
+The 3D Printer Dashboard provides live printer status, temperature monitoring, print control, system metrics, and environmental data through a responsive web interface. It is optimized for both desktop and mobile use and supports multiple OctoPrint instances running on the same network.
+
+---
 
 ## Features
 
-### 🖨️ Printer Management
-- **Real-time Status Monitoring** - Live printer state (printing, paused, idle, offline)
-- **Temperature Tracking** - Live hotend and bed temperature display with stability indicator
-- **Print Progress** - Visual progress bar with estimated time remaining
-- **Pause/Resume Control** - Smart pause/resume buttons that appear when printing
-- **Cancel Print** - One-click print cancellation with confirmation
-- **XYZ Axis Control** - Manual jog control with adjustable movement distance
-- **Homing** - Home individual axes or all at once
+Printer Management
+	•	Real-time printer status monitoring (printing, paused, idle, offline)
+	•	Live hotend and bed temperature tracking with stability indicators
+	•	Print progress visualization with estimated time remaining
+	•	Pause, resume, and cancel print functionality
+	•	Manual XYZ axis jog controls with configurable movement distance
+	•	Axis homing (individual axes or all axes)
 
-### 📊 Monitoring & Analytics
-- **Temperature Graph** - Real-time line chart (last 60 readings) showing hotend and bed temperatures
-- **Collapsible Sections** - Expandable panels for camera, graphs, and axis control
-- **Persistent UI State** - Remembers which sections are expanded via localStorage
+Monitoring and Analytics
+	•	Real-time temperature graph displaying recent hotend and bed readings
+	•	Collapsible UI sections for improved layout organization
+	•	Persistent UI state using browser local storage
 
-### 📷 Live Camera Feed
-- **MJPEG Stream** - Live camera view for each printer
-- **Auto-Reconnect** - Automatically recovers MJPEG streams on phone wake/unlock
-- **Connectivity Status** - Visual indicator for camera online/offline status
+Live Camera Feed
+	•	MJPEG-based live camera streams per printer
+	•	Automatic reconnection on device wake or network interruption
+	•	Visual status indicator for camera connectivity
 
-### 🌤️ Weather Integration
-- **Local Weather** - Real-time temperature, humidity, wind, pressure
-- **Air Quality** - AQI and PM2.5 levels
-- **Forecast** - Rain probability, min/max temperatures
-- **Sun Times** - Sunrise/sunset times
+Weather Integration
+	•	Local weather data including temperature, humidity, wind, and pressure
+	•	Air quality metrics (AQI and PM2.5)
+	•	Forecast data with precipitation probability and daily min/max temperatures
+	•	Sunrise and sunset times
 
-### 💻 System Monitoring
-- **CPU Usage** - Real-time CPU percentage
-- **Memory** - RAM usage and percentage
-- **Disk Space** - Storage usage and percentage
-- **Uptime** - System uptime display
-- **Live Clock** - Current time with automatic updates
+System Monitoring
+	•	CPU usage
+	•	Memory usage
+	•	Disk usage
+	•	System uptime
+	•	Live clock display
 
-### 📱 Responsive Design
-- **Mobile Optimized** - Fully responsive for phones and tablets
-- **Dark Theme** - Easy on the eyes with dark background
-- **Touch-Friendly** - Large buttons and controls for mobile use
-- **Adaptive Layout** - Grid layout adjusts to screen size
+Responsive Design
+	•	Fully responsive layout for desktop, tablet, and mobile devices
+	•	Dark theme optimized for extended use
+	•	Touch-friendly controls
+	•	Adaptive grid layout
 
 ---
 
 ## Project Structure
-
-`-WebInterface/
-  -WebInterface.py
-  -templates/
-    -index.html
-  -static/
-    -style.css`
+```
+WebInterface/
+├── WebInterface.py
+├── templates/
+│   └── index.html
+└── static/
+└── style.css
+```
 ---
 
 ## Installation
 
-### Prerequisites
-- Python 3.7+
-- Two OctoPrint instances running on your network
-- OpenWeatherMap API key (free tier available)
+Prerequisites
+	•	Python 3.7 or newer
+	•	Two or more OctoPrint instances running on the same network
+	•	OpenWeatherMap API key (free tier supported)
+---
+## Setup
 
-### Setup
+Clone the repository:
 
-1. **Clone the repository**
+`git clone https://github.com/Claus-GS/WebInterface
+cd printer-dashboard`
 
-`git clone https://github.com/Claus-GS/WebInterface`
-`cd printer-dashboard`
-
-
-2. **Create a virtual environment**
-
-`python -m venv venv source venv/bin/activate  # On Windows: venv\Scripts\activate`
-
-3. **Install dependencies**
+Create and activate a virtual environment:
+```
+python -m venv venv
+source venv/bin/activate
+Windows: venv\Scripts\activate
+```
+Install dependencies:
 
 `pip install -r requirements.txt`
 
-4. **Configure OctoPrint URLs and API Keys**
+Configure OctoPrint instances in WebInterface.py:
+```
+printer1_URL = “http://printer1-ip:5000”
+printer2_URL = “http://printer2-ip:5001”
 
-Edit `WebInterface.py` and update:
+printer1_KEY = “printer1-api-key”
+printer2_KEY = “printer2-api-key”
+```
+Configure the Weather API:
+```
+WEATHER_API_KEY = “your-openweathermap-key”
+WEATHER_LAT = "your-latitude"
+WEATHER_LON = your-longitute"
+```
 
-OctoPrint Instances
-`printer1_URL = "http://your-printer1-ip:5000" printer2_URL  = "http://your-printer2-ip:5001"`
-`printer1_KEY = "your-printer1-api-key" printer2_KEY  = "your-printer2-api-key"`
+Configure camera URLs in templates/index.html:
+```
+<img src="http://printer-ip:8080/?action=stream">
+```
 
-Weather API Configuration
-`WEATHER_API_KEY = "your-openweathermap-key" WEATHER_LAT = x      # Your latitude WEATHER_LON = y     # Your longitude`
-
-5. **Update Camera URLs**
-
-In `templates/index.html`, find and replace:
-
--- Replace these with your actual camera URLs --> `<img src="http://localhost:5000/<printername>/?action=stream"> <img src="http://localhost:5001<printername>/?action=stream">**`
-
-Common camera URL formats:
-- **OctoPrint webcam**: `http://printer-ip:8080/?action=stream`
-- **Network IP camera**: `http://camera-ip/stream`
-- **RTSP stream**: `http://camera-ip:554/stream`
-
-6. **Run the application**
+Run the application:
 `python WebInterface.py`
 
-
-The dashboard will be available at: `http://localhost:8100`
-
----
-
-Test camera connectivity:
-1. Open your camera URL directly in browser
-2. Verify it loads and streams video
-3. Check firewall/network settings if camera is unreachable
-
----
+Dashboard URL:
+`http://localhost:
 
 ## API Endpoints
 
-### Job Control
+Print Control
 
-`POST /api/control/<printer>/<action>
-Parameters: printer: "printer1" or "printer2" action:  "pause", "resume", or "cancel"
-Response: { "ok": true }`
+`POST /api/control//`
 
-### Axis Movement (Jog)
+Parameters:
+	•	printer: printer1 or printer2
+	•	action: pause, resume, cancel
 
-`POST /api/control/<printer>/jog
-Request body: { "command": "jog", "axes": { "x": 10,   // mm (positive = right) "y": -5,   // mm (positive = forward) "z": 2     // mm (positive = up) } }
-Response: { "ok": true }`
+Response:
+```{ “ok”: true }```
 
-### Homing
+Axis Movement (Jog)
+```
+`POST /api/control//jog`
+```
+Request body:
+```
+{
+“command”: “jog”,
+“axes”: {
+“x”: 10,
+“y”: -5,
+“z”: 2
+}
+}
+```
+Homing
 
-`POST /api/control/<printer>/home
-Request body: { "command": "home", "axes": ["x", "y", "z"]  // or ["x"], ["y"], ["z"] for individual axes }
-Response: { "ok": true }`
+`POST /api/control//home`
 
+Request body:
+```
+{
+“command”: “home”,
+“axes”: [“x”, “y”, “z”]
+}
+```
 ---
 
 ## Real-Time Updates
 
-The dashboard uses **Socket.IO** to receive real-time updates every 2 seconds:
-
-**Emitted data includes:**
-- Printer status and job information
-- Current temperatures (hotend and bed)
-- System metrics (CPU, RAM, disk, uptime)
-- Weather data (cached for 10 minutes)
+The dashboard uses Socket.IO to push updates every two seconds, including:
+	•	Printer and job status
+	•	Temperature readings
+	•	System performance metrics
+	•	Cached weather data (refreshed every 10 minutes)
 
 ---
 
 ## Browser Compatibility
-
-- ✅ Chrome/Chromium (latest)
-- ✅ Firefox (latest)
-- ✅ Safari (latest)
-- ✅ Edge (latest)
-- ✅ Mobile browsers (iOS Safari, Chrome Android)
+	•	Chrome / Chromium (latest)
+	•	Firefox (latest)
+	•	Safari (latest)
+	•	Edge (latest)
+	•	Mobile browsers (iOS Safari, Chrome for Android)
 
 ---
 
 ## Dependencies
-`flask==2.3.0 flask-socketio==5.3.0 python-socketio==5.9.0 python-engineio==4.7.0 requests==2.31.0 psutil==5.9.5 eventlet==0.33.3`
-
-`Install with:  pip install -r requirements.txt`
-
+```
+flask==2.3.0
+flask-socketio==5.3.0
+python-socketio==5.9.0
+python-engineio==4.7.0
+requests==2.31.0
+psutil==5.9.5
+eventlet==0.33.3
+```
 ---
 
 ## Troubleshooting
 
-### Cameras Not Loading
-**Problem:** Camera feed shows blank or "loading"
+Camera Feed Not Loading
+	•	Verify camera URLs are correct
+	•	Test camera streams directly in a browser
+	•	Check firewall and network access
+	•	Inspect browser console for errors
 
-**Solutions:**
-- Verify camera URLs are correct and accessible
-- Test camera URL directly in your browser
-- Check network connectivity to camera
-- Ensure camera IP/port is reachable from dashboard host
-- Look for CORS issues in browser console (F12)
-- Verify firewall allows access to camera ports
+Printer Offline or Not Updating
+	•	Verify OctoPrint URLs and API keys
+	•	Ensure OctoPrint is running and reachable
+	•	Confirm API key permissions
+	•	Check terminal output and browser console
 
-### Printer Connection Issues
-**Problem:** Printer shows "Offline" or no data updates
+Weather Data Issues
+	•	Verify API key and geographic coordinates
+	•	Confirm internet connectivity
+	•	Check OpenWeatherMap rate limits
+	•	Review application logs
 
-**Solutions:**
-- Verify OctoPrint URLs and API keys in `WebInterface.py`
-- Check that OctoPrint instances are running and accessible
-- Ensure network connectivity between dashboard and printers
-- Verify API keys have correct permissions in OctoPrint settings
-- Monitor `print()` statements in terminal for error messages
-- Check browser console for connection errors
-
-### Weather Data Not Loading
-**Problem:** Weather section shows blank or errors
-
-**Solutions:**
-- Verify API key is correct and active
-- Check latitude/longitude values are valid
-- Ensure internet connectivity on dashboard server
-- OpenWeatherMap free tier has rate limits (60 calls/min)
-- Wait 10 minutes for cache to refresh
-- Check for API errors in terminal output
-
-### Axis Control Not Working
-**Problem:** Jog/Home buttons don't move axes
-
-**Solutions:**
-- Verify printer is NOT currently printing (must be idle)
-- Test manual axis control in OctoPrint web interface
-- Ensure API key has `control` permissions
-- Check that printer firmware supports jog commands
-- Monitor browser console for error messages
-- Verify printer is connected and operational
+Axis Control Not Responding
+	•	Ensure printer is idle
+	•	Verify firmware supports jog commands
+	•	Confirm API control permissions
 
 ---
 
 ## Customization
 
-### Styling
-Edit `static/style.css` to customize:
-- Colors and themes
-- Font sizes
-- Button styles
-- Layout and spacing
-- Responsive breakpoints
+Styling
 
-### Adding More Printers
-To add a third printer:
+Edit `static/style.css` to adjust layout, colors, fonts, and responsive breakpoints.
 
-1. **Add configuration in `WebInterface.py`:**
+Adding Additional Printers
+	•	Add new printer URLs and API keys in WebInterface.py
+	•	Fetch printer data in the update loop
+	•	Emit new printer data via Socket.IO
+	•	Duplicate the printer section in index.html
 
+Update Frequency
 
-`THIRD_PRINTER_URL = "http://printer-ip:5002" THIRD_PRINTER_KEY = "api-key" HEADERS_THIRD = {"X-Api-Key": THIRD_PRINTER_KEY}`
+Modify the update interval in WebInterface.py:
 
-
-2. **Update `data_loop()` function:**
-
-`tp, tj = fetch_octoprint(THIRD_PRINTER_URL, HEADERS_THIRD)`
-
-
-3. **Add to emitted data:**
-
-`socketio.emit("update", { # ... existing data ... "third_printer": tp, "third_job": tj, })`
-
-
-4. **Duplicate printer section in HTML** and update printer name
-
-### Changing Update Frequency
-In `WebInterface.py`, modify the sleep interval:
-`socketio.sleep(2)  # Change 2 to desired seconds`
+`socketio.sleep(2)`
 
 ---
 
 ## Performance
-
-- **Update Rate**: 2 seconds (configurable)
-- **Weather Cache**: 10 minutes
-- **Memory Usage**: ~50-100 MB
-- **Network**: Real-time Socket.IO connections
-- **Mobile**: Optimized for slow connections with minimal data usage
+	•	Update interval: 2 seconds (configurable)
+	•	Weather cache: 10 minutes
+	•	Typical memory usage: 50–100 MB
+	•	Optimized for mobile and low-bandwidth connections
 
 ---
 
 ## License
 
-MIT License - Feel free to use and modify as needed.
-
----
-
-## Support
-
-For issues or questions:
-1. **Check browser console** - Press F12, look for error messages
-2. **Monitor terminal output** - Watch for errors from `WebInterface.py`
-3. **Verify configuration** - Double-check all URLs and API keys
-4. **Test connectivity** - Ensure OctoPrint and cameras are accessible
-5. **Check logs** - Look at system logs for network/service issues
+MIT License
 
 ---
 
 ## Future Enhancements
-
-- [ ] Multi-printer print queue management
-- [ ] Print history and statistics
-- [ ] Filament tracking
-- [ ] Email/SMS alerts for print completion
-- [ ] Bed leveling assistant
-- [ ] Remote file upload
-- [ ] Dark/light theme toggle
+	•	Multi-printer queue management
+	•	Print history and analytics
+	•	Filament usage tracking
+	•	Notification system (email/SMS)
+	•	Bed leveling assistance
+	•	Remote file upload
+	•	Light/dark theme toggle
 
 ---
 
-**Built with ❤️ for 3D printing enthusiasts using AI**
+## Additional Resources
 
-For more information about OctoPrint, visit: [octoprint.org](https://octoprint.org)
+OctoPrint documentation: `https://octoprint.org`
