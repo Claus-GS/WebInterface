@@ -100,7 +100,7 @@ Common camera URL formats:
 - **RTSP stream**: `http://camera-ip:554/stream`
 
 6. **Run the application**
-python WebInterface.py
+`python WebInterface.py`
 
 
 The dashboard will be available at: `http://localhost:8100`
