@@ -171,10 +171,10 @@ Request body:
 
 ## Browser Compatibility
 - Chrome / Chromium (latest)
-= Firefox (latest)
-= Safari (latest)
-= Edge (latest)
-= Mobile browsers (iOS Safari, Chrome for Android)
+- Firefox (latest)
+- Safari (latest)
+- Edge (latest)
+- Mobile browsers (iOS Safari, Chrome for Android)
 
 ---
 
