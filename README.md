@@ -116,7 +116,7 @@ Run the application:
 `python WebInterface.py`
 
 Dashboard URL:
-`http://localhost:`
+`http://localhost:8100`
 
 ## API Endpoints
 
