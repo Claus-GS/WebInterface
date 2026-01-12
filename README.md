@@ -77,22 +77,22 @@ Prerequisites
 ---
 ## Setup
 
-Clone the repository:
+### Clone the repository:
 
 `git clone https://github.com/Claus-GS/WebInterface
 cd printer-dashboard`
 
-Create and activate a virtual environment:
+### Create and activate a virtual environment:
 ```
 python -m venv venv
 source venv/bin/activate
 Windows: venv\Scripts\activate
 ```
-Install dependencies:
+### Install dependencies:
 
 `pip install -r requirements.txt`
 
-Configure OctoPrint instances in `WebInterface.py`:
+### Configure OctoPrint instances in `WebInterface.py`:
 ```
 printer1_URL = “http://printer1-ip:5000”
 printer2_URL = “http://printer2-ip:5001”
@@ -100,38 +100,38 @@ printer2_URL = “http://printer2-ip:5001”
 printer1_KEY = “printer1-api-key”
 printer2_KEY = “printer2-api-key”
 ```
-Configure the Weather API:
+### Configure the Weather API:
 ```
 WEATHER_API_KEY = “your-openweathermap-key”
 WEATHER_LAT = "your-latitude"
 WEATHER_LON = your-longitute"
 ```
 
-Configure camera URLs in `templates/index.html`:
+### Configure camera URLs in `templates/index.html`:
 ```
 <img src="http://printer-ip:8080/?action=stream">
 ```
 
-Run the application:
+### Run the application:
 `python WebInterface.py`
 
-Dashboard URL:
+### Dashboard URL:
 `http://localhost:8100`
 
 ## API Endpoints
 
-Print Control
+### Print Control
 
 `POST /api/control//`
 
-Parameters:
+### Parameters:
 -printer: printer1 or printer2
 -action: pause, resume, cancel
 
 Response:
 ```{ “ok”: true }```
 
-Axis Movement (Jog)
+### Axis Movement (Jog)
 ```
 `POST /api/control//jog`
 ```
@@ -146,7 +146,7 @@ Request body:
 }
 }
 ```
-Homing
+### Homing
 
 `POST /api/control//home`
 
@@ -161,7 +161,7 @@ Request body:
 
 ## Real-Time Updates
 
-The dashboard uses Socket.IO to push updates every two seconds, including:
+### The dashboard uses Socket.IO to push updates every two seconds, including:
 - Printer and job status
 - Temperature readings
 - System performance metrics
@@ -192,25 +192,25 @@ eventlet==0.33.3
 
 ## Troubleshooting
 
-Camera Feed Not Loading
+### Camera Feed Not Loading
 - Verify camera URLs are correct
 - Test camera streams directly in a browser
 - Check firewall and network access
 - Inspect browser console for errors
 
-Printer Offline or Not Updating
+### Printer Offline or Not Updating
 - Verify OctoPrint URLs and API keys
 - Ensure OctoPrint is running and reachable
 - Confirm API key permissions
 - Check terminal output and browser console
 
-Weather Data Issues
+### Weather Data Issues
 - Verify API key and geographic coordinates
 - Confirm internet connectivity
 - Check OpenWeatherMap rate limits
 - Review application logs
 
-Axis Control Not Responding
+### Axis Control Not Responding
 - Ensure printer is idle
 - Verify firmware supports jog commands
 - Confirm API control permissions
@@ -219,17 +219,17 @@ Axis Control Not Responding
 
 ## Customization
 
-Styling
+### Styling
 
 Edit `static/style.css` to adjust layout, colors, fonts, and responsive breakpoints.
 
-Adding Additional Printers
+### Adding Additional Printers
 -Add new printer URLs and API keys in WebInterface.py
 -Fetch printer data in the update loop
 -Emit new printer data via Socket.IO
 -Duplicate the printer section in index.html
 
-Update Frequency
+### Update Frequency
 
 Modify the update interval in `WebInterface.py`:
 
