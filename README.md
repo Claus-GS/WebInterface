@@ -69,7 +69,7 @@ WebInterface/
 
 ## Installation
 
-Prerequisites
+### Prerequisites
 - Python 3.7 or newer
 - Two or more OctoPrint instances running on the same network
 - OpenWeatherMap API key (free tier supported)
