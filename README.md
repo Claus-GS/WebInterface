@@ -80,8 +80,8 @@ pip install -r requirements.txt
 Edit `WebInterface.py` and update:
 
 OctoPrint Instances
-MINIMUS_URL = "http://your-minimus-ip:5000" SPRITE_URL  = "http://your-sprite-ip:5001"
-MINIMUS_KEY = "your-minimus-api-key" SPRITE_KEY  = "your-sprite-api-key"
+printer1_URL = "http://your-printer1-ip:5000" printer2_URL  = "http://your-printer2-ip:5001"
+printer1_KEY = "your-printer1-api-key" printer2_KEY  = "your-printer2-api-key"
 
 Weather API Configuration
 WEATHER_API_KEY = "your-openweathermap-key" WEATHER_LAT = 44.3091      # Your latitude WEATHER_LON = -78.3197     # Your longitude
@@ -125,12 +125,12 @@ The dashboard will be available at: `http://localhost:8100`
 
 Update camera URLs in `templates/index.html`:
 
-**For Minimus printer:**
-- Find line with `cam_Ender3minimus`
+**For printer1 printer:**
+- Find line with `cam_Ender3printer1`
 - Replace URL with your actual camera stream URL
 
-**For Sprite printer:**
-- Find line with `cam_Ender3Sprite`
+**For printer2 printer:**
+- Find line with `cam_Ender3printer2`
 - Replace URL with your actual camera stream URL
 
 Test camera connectivity:
@@ -145,7 +145,7 @@ Test camera connectivity:
 ### Job Control
 
 POST /api/control/<printer>/<action>
-Parameters: printer: "minimus" or "sprite" action:  "pause", "resume", or "cancel"
+Parameters: printer: "printer1" or "printer2" action:  "pause", "resume", or "cancel"
 Response: { "ok": true }
 
 ### Axis Movement (Jog)
