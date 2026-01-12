@@ -86,7 +86,7 @@ OctoPrint Instances
 `printer1_KEY = "your-printer1-api-key" printer2_KEY  = "your-printer2-api-key"`
 
 Weather API Configuration
-`WEATHER_API_KEY = "your-openweathermap-key" WEATHER_LAT = 44.3091      # Your latitude WEATHER_LON = -78.3197     # Your longitude`
+`WEATHER_API_KEY = "your-openweathermap-key" WEATHER_LAT = x      # Your latitude WEATHER_LON = y     # Your longitude`
 
 5. **Update Camera URLs**
 
