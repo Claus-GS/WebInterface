@@ -107,34 +107,6 @@ The dashboard will be available at: `http://localhost:8100`
 
 ---
 
-## Configuration
-
-### OctoPrint API Keys
-
-1. Navigate to your OctoPrint web interface
-2. Go to **Settings → API**
-3. Copy your **API Key**
-4. Add to `WebInterface.py`
-
-### OpenWeatherMap API Key
-
-1. Sign up for a free account at [openweathermap.org/api](https://openweathermap.org/api)
-2. Generate an API key
-3. Update `WEATHER_API_KEY` in `WebInterface.py`
-4. Set your location using `WEATHER_LAT` and `WEATHER_LON`
-
-### Camera Setup
-
-Update camera URLs in `templates/index.html`:
-
-**For printer1 printer:**
-- Find line with `cam_Ender3printer1`
-- Replace URL with your actual camera stream URL
-
-**For printer2 printer:**
-- Find line with `cam_Ender3printer2`
-- Replace URL with your actual camera stream URL
-
 Test camera connectivity:
 1. Open your camera URL directly in browser
 2. Verify it loads and streams video
@@ -158,11 +130,9 @@ Response: { "ok": true }`
 
 ### Homing
 
-
 `POST /api/control/<printer>/home
 Request body: { "command": "home", "axes": ["x", "y", "z"]  // or ["x"], ["y"], ["z"] for individual axes }
 Response: { "ok": true }`
-
 
 ---
 
@@ -190,7 +160,6 @@ The dashboard uses **Socket.IO** to receive real-time updates every 2 seconds:
 
 ## Dependencies
 `flask==2.3.0 flask-socketio==5.3.0 python-socketio==5.9.0 python-engineio==4.7.0 requests==2.31.0 psutil==5.9.5 eventlet==0.33.3`
-
 
 `Install with:  pip install -r requirements.txt`
 
