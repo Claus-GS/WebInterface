@@ -1,5 +1,10 @@
-## 3D Printer Dashboard
+# 3D Printer Dashboard
 ---
+
+<img width="2163" height="1111" alt="image" src="https://github.com/user-attachments/assets/32ccee51-551f-494a-ae79-17da808919ce" />
+
+---
+
 A real-time, web-based dashboard for monitoring and controlling multiple 3D printers running OctoPrint. The application is built using Flask, Socket.IO, and Chart.js, providing centralized visibility and control across multiple printers from a single interface.
 
 ---
@@ -12,43 +17,46 @@ The 3D Printer Dashboard provides live printer status, temperature monitoring, p
 
 ## Features
 
-Printer Management```
-	•	Real-time printer status monitoring (printing, paused, idle, offline)
-	•	Live hotend and bed temperature tracking with stability indicators
-	•	Print progress visualization with estimated time remaining
-	•	Pause, resume, and cancel print functionality
-	•	Manual XYZ axis jog controls with configurable movement distance
-	•	Axis homing (individual axes or all axes)
-```
-Monitoring and Analytics```
-	•	Real-time temperature graph displaying recent hotend and bed readings
-	•	Collapsible UI sections for improved layout organization
-	•	Persistent UI state using browser local storage
-```
-Live Camera Feed```
-	•	MJPEG-based live camera streams per printer
-	•	Automatic reconnection on device wake or network interruption
-	•	Visual status indicator for camera connectivity
-```
-Weather Integration```
-	•	Local weather data including temperature, humidity, wind, and pressure
-	•	Air quality metrics (AQI and PM2.5)
-	•	Forecast data with precipitation probability and daily min/max temperatures
-	•	Sunrise and sunset times
-```
-System Monitoring```
-	•	CPU usage
-	•	Memory usage
-	•	Disk usage
-	•	System uptime
-	•	Live clock display
-```
-Responsive Design```
-	•	Fully responsive layout for desktop, tablet, and mobile devices
-	•	Dark theme optimized for extended use
-	•	Touch-friendly controls
-	•	Adaptive grid layout
-```
+### Printer Management
+- Real-time printer status monitoring (printing, paused, idle, offline)
+- Live hotend and bed temperature tracking with stability indicators
+- Print progress visualization with estimated time remaining
+- Pause, resume, and cancel print functionality
+- Manual XYZ axis jog controls with configurable movement distance
+- Axis homing (individual axes or all axes)
+
+### Monitoring and Analytics
+- Real-time temperature graph displaying recent hotend and bed readings
+- Collapsible UI sections for improved layout organization
+- Persistent UI state using browser local storage
+
+### Live Camera Feed
+- MJPEG-based live camera streams per printer
+- Automatic reconnection on device wake or network interruption
+- Visual status indicator for camera connectivity
+
+### Weather Integration
+- Local weather data including temperature, humidity, wind, and pressure
+- Air quality metrics (AQI and PM2.5)
+- Forecast data with precipitation probability and daily min/max temperatures
+- Sunrise and sunset times
+
+### System Monitoring
+- CPU usage
+- Memory usage
+- Disk usage
+- System uptime
+- Live clock display
+
+### Responsive Design
+- Fully responsive layout for desktop, tablet, and mobile devices
+- Dark theme optimized for extended use
+- Touch-friendly controls
+- Adaptive grid layout
+
+---
+
+## Project Structure
 ---
 
 ## Project Structure
@@ -65,9 +73,9 @@ WebInterface/
 ## Installation
 
 Prerequisites
-	•	Python 3.7 or newer
-	•	Two or more OctoPrint instances running on the same network
-	•	OpenWeatherMap API key (free tier supported)
+-•	Python 3.7 or newer
+-•	Two or more OctoPrint instances running on the same network
+-•	OpenWeatherMap API key (free tier supported)
 ---
 ## Setup
 
@@ -187,27 +195,27 @@ eventlet==0.33.3
 ## Troubleshooting
 
 Camera Feed Not Loading
-	•	Verify camera URLs are correct
-	•	Test camera streams directly in a browser
-	•	Check firewall and network access
-	•	Inspect browser console for errors
+	-•	Verify camera URLs are correct
+	-•	Test camera streams directly in a browser
+	-•	Check firewall and network access
+	-•	Inspect browser console for errors
 
 Printer Offline or Not Updating
-	•	Verify OctoPrint URLs and API keys
-	•	Ensure OctoPrint is running and reachable
-	•	Confirm API key permissions
-	•	Check terminal output and browser console
+	-•	Verify OctoPrint URLs and API keys
+	-•	Ensure OctoPrint is running and reachable
+	-•	Confirm API key permissions
+	-•	Check terminal output and browser console
 
 Weather Data Issues
-	•	Verify API key and geographic coordinates
-	•	Confirm internet connectivity
-	•	Check OpenWeatherMap rate limits
-	•	Review application logs
+	-•	Verify API key and geographic coordinates
+	-•	Confirm internet connectivity
+	-•	Check OpenWeatherMap rate limits
+	-•	Review application logs
 
 Axis Control Not Responding
-	•	Ensure printer is idle
-	•	Verify firmware supports jog commands
-	•	Confirm API control permissions
+	-•	Ensure printer is idle
+	-•	Verify firmware supports jog commands
+	-•	Confirm API control permissions
 
 ---
 
@@ -218,10 +226,10 @@ Styling
 Edit `static/style.css` to adjust layout, colors, fonts, and responsive breakpoints.
 
 Adding Additional Printers
-	•	Add new printer URLs and API keys in WebInterface.py
-	•	Fetch printer data in the update loop
-	•	Emit new printer data via Socket.IO
-	•	Duplicate the printer section in index.html
+	-•	Add new printer URLs and API keys in WebInterface.py
+	-•	Fetch printer data in the update loop
+	-•	Emit new printer data via Socket.IO
+	-•	Duplicate the printer section in index.html
 
 Update Frequency
 
@@ -232,10 +240,10 @@ Modify the update interval in WebInterface.py:
 ---
 
 ## Performance
-	•	Update interval: 2 seconds (configurable)
-	•	Weather cache: 10 minutes
-	•	Typical memory usage: 50–100 MB
-	•	Optimized for mobile and low-bandwidth connections
+	-•	Update interval: 2 seconds (configurable)
+	-•	Weather cache: 10 minutes
+	-•	Typical memory usage: 50–100 MB
+	-•	Optimized for mobile and low-bandwidth connections
 
 ---
 
@@ -246,13 +254,13 @@ MIT License
 ---
 
 ## Future Enhancements
-	•	Multi-printer queue management
-	•	Print history and analytics
-	•	Filament usage tracking
-	•	Notification system (email/SMS)
-	•	Bed leveling assistance
-	•	Remote file upload
-	•	Light/dark theme toggle
+	-•	Multi-printer queue management
+	-•	Print history and analytics
+	-•	Filament usage tracking
+	-•	Notification system (email/SMS)
+	-•	Bed leveling assistance
+	-•	Remote file upload
+	-•	Light/dark theme toggle
 
 ---
 
