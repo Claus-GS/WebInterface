@@ -65,7 +65,8 @@ A real-time web-based dashboard for monitoring and controlling multiple 3D print
 
 1. **Clone the repository**
 
-`git clone <repository-url> cd printer-dashboard`
+`git clone https://github.com/Claus-GS/WebInterface`
+`cd printer-dashboard`
 
 
 2. **Create a virtual environment**
