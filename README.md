@@ -57,9 +57,6 @@ The 3D Printer Dashboard provides live printer status, temperature monitoring, p
 ---
 
 ## Project Structure
----
-
-## Project Structure
 ```
 WebInterface/
 ├── WebInterface.py
