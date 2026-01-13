@@ -15,16 +15,16 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 MINIMUS_URL = "http://127.0.0.1:5000"
 SPRITE_URL  = "http://127.0.0.1:5001"
 
-MINIMUS_KEY = "k1VzZxdY88PD_fvtOXXuwLxP3iFWNJRmi6alX3i6tNE"
-SPRITE_KEY  = "S1J6JDg0XaZrDD3cCjQnwps0aa2aro7W6HqyCXhXCi0"
+MINIMUS_KEY = "printer1apikey"
+SPRITE_KEY  = "printer2apikey"
 
 HEADERS_MINIMUS = {"X-Api-Key": MINIMUS_KEY}
 HEADERS_SPRITE  = {"X-Api-Key": SPRITE_KEY}
 
 # ---------------- WEATHER ----------------
-WEATHER_API_KEY = "190fda66ebafad2e6eed5b6a1cac6fe7"
-WEATHER_LAT = 44.3091
-WEATHER_LON = -78.3197
+WEATHER_API_KEY = "weatherapiley"
+WEATHER_LAT = lat
+WEATHER_LON = lon
 
 _weather_cache = {}
 _weather_last = 0
