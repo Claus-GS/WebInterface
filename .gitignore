@@ -1,0 +1,14 @@
+.env
+__pycache__/
+*.pyc
+*.pyc*
+.venv/
+venv/
+.vs/
+server*.log
+tmp-*.log
+dashboard_data.json
+dashboard_data.json.tmp
+tmp-*.json
+tmp-*.json.tmp
+_backup_original/

@@ -3,247 +3,961 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0e1a">
 
 <title>Claus' 3D Printer Dashboard</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235b8def' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z'/%3E%3Cpolyline points='3.29 7 12 12 20.71 7'/%3E%3Cline x1='12' x2='12' y1='22' y2='12'/%3E%3C/svg%3E">
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+{%- macro ic(name) -%}
+<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+{%- if name == 'cpu' -%}<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2"/>
+{%- elif name == 'ram' -%}<path d="M2 7a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4Z"/><path d="M6 19v-3M10 19v-3M14 19v-3M18 19v-3"/>
+{%- elif name == 'disk' -%}<line x1="22" x2="2" y1="12" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" x2="6.01" y1="16" y2="16"/><line x1="10" x2="10.01" y1="16" y2="16"/>
+{%- elif name == 'clock' -%}<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+{%- elif name == 'printer' -%}<polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
+{%- elif name == 'chart' -%}<path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>
+{%- elif name == 'camera' -%}<path d="m22 8-6 4 6 4V8Z"/><rect x="2" y="6" width="14" height="12" rx="2"/>
+{%- elif name == 'move' -%}<polyline points="5 9 2 12 5 15"/><polyline points="9 5 12 2 15 5"/><polyline points="15 19 12 22 9 19"/><polyline points="19 9 22 12 19 15"/><line x1="2" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="22"/>
+{%- elif name == 'home' -%}<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+{%- elif name == 'left' -%}<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>
+{%- elif name == 'right' -%}<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+{%- elif name == 'up' -%}<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>
+{%- elif name == 'down' -%}<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>
+{%- elif name == 'chevron' -%}<path d="m6 9 6 6 6-6"/>
+{%- elif name == 'thermo' -%}<path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/>
+{%- elif name == 'snow' -%}<line x1="2" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="22"/><path d="m20 16-4-4 4-4"/><path d="m4 8 4 4-4 4"/><path d="m16 4-4 4-4-4"/><path d="m8 20 4-4 4 4"/>
+{%- elif name == 'plus' -%}<path d="M5 12h14"/><path d="M12 5v14"/>
+{%- elif name == 'minus' -%}<path d="M5 12h14"/>
+{%- elif name == 'logout' -%}<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>
+{%- elif name == 'history' -%}<path d="M3 3v5h5"/><path d="M3.05 13a9 9 0 1 0 2.64-6.36L3 8"/><path d="M12 7v5l3 2"/>
+{%- elif name == 'bell' -%}<path d="M10 21h4"/><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 7h18s-3 0-3-7"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+{%- elif name == 'stop' -%}<rect x="6" y="6" width="12" height="12" rx="1"/>
+{%- elif name == 'lock' -%}<rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+{%- elif name == 'unlock' -%}<rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.5-2.2"/>
+{%- elif name == 'spool' -%}<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M3 12h6M15 12h6"/>
+{%- elif name == 'wrench' -%}<path d="M14.7 6.3a4 4 0 0 0-5 5L3 18v3h3l6.7-6.7a4 4 0 0 0 5-5l-2.4 2.4-3-3 2.4-2.4Z"/>
+{%- elif name == 'check' -%}<path d="M20 6 9 17l-5-5"/>
+{%- elif name == 'expand' -%}<path d="M15 3h6v6"/><path d="m21 3-7 7"/><path d="M9 21H3v-6"/><path d="m3 21 7-7"/>
+{%- elif name == 'download' -%}<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/>
+{%- elif name == 'signal' -%}<path d="M2 20h.01"/><path d="M7 20v-4"/><path d="M12 20v-8"/><path d="M17 20V8"/><path d="M22 20V4"/>
+{%- elif name == 'x' -%}<path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+{%- elif name == 'logo' -%}<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" x2="12" y1="22" y2="12"/>
+{%- endif -%}
+</svg>
+{%- endmacro -%}
+
+<div class="bg-glow"></div>
+
+<header class="topbar">
+    <div class="topbar-inner">
+        <div class="brand">
+            <span class="brand-mark">{{ ic('logo') }}</span>
+            <h1>Claus' Printer Dashboard</h1>
+        </div>
+        <div class="topbar-right">
+            <div id="conn" class="conn connecting" title="Connection status">
+                <span class="conn-dot"></span><span id="conn-text">Connecting…</span>
+            </div>
+            <div id="clock" class="clock">--:--:--</div>
+            <div id="system-stats" class="sys-stats">
+                <span class="chip">{{ ic('cpu') }} CPU <b id="sys-cpu">--</b>%</span>
+                <span class="chip">{{ ic('ram') }} RAM <b id="sys-mem">--</b></span>
+                <span class="chip">{{ ic('disk') }} Disk <b id="sys-disk">--</b></span>
+                <span class="chip">{{ ic('clock') }} <b id="sys-up">--</b></span>
+            </div>
+            <form method="post" action="{{ url_for('logout') }}" class="logout-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button class="icon-btn" type="submit" title="Log out" aria-label="Log out">
+                    {{ ic('logout') }}
+                </button>
+            </form>
+        </div>
+    </div>
+</header>
+
+<main class="container">
+
+    <!-- ===== PRINTERS (config-driven) ===== -->
+    {% for pid, p in printers.items() %}
+    <section class="card printer-card" data-printer="{{ pid }}">
+        <div class="card-head">
+            <h2>{{ ic('printer') }} {{ p.label }}</h2>
+            <span id="{{ pid }}-status" class="status state-offline">--</span>
+        </div>
+
+        <div id="{{ pid }}-health" class="health-strip">
+            <span class="health-pill health-waiting">{{ ic('signal') }} Checking</span>
+        </div>
+
+        <p id="{{ pid }}-file" class="filename" style="display:none;"></p>
+
+        <div class="temps">
+            <div class="temp-tile hotend">
+                <span class="temp-tile-label">Hotend <span id="{{ pid }}-temp-dot" class="temp-dot"></span></span>
+                <span class="temp-tile-val"><span id="{{ pid }}-hotend">--</span><span id="{{ pid }}-hotend-target" class="temp-target"></span></span>
+            </div>
+            <div class="temp-tile bed">
+                <span class="temp-tile-label">Bed</span>
+                <span class="temp-tile-val"><span id="{{ pid }}-bed">--</span><span id="{{ pid }}-bed-target" class="temp-target"></span></span>
+            </div>
+        </div>
+
+        <div class="progress"><div id="{{ pid }}-bar" class="progress-fill"></div></div>
+        <p id="{{ pid }}-progress" class="progress-text"></p>
+
+        <div class="btn-row">
+            <button id="{{ pid }}-toggle" class="btn btn-primary" style="display:none;">Pause</button>
+            <button id="{{ pid }}-cancel" class="btn btn-danger"
+                onclick="cancelPrint('{{ pid }}', '{{ p.label }}')">
+                Cancel
+            </button>
+        </div>
+
+        <div class="safety-row">
+            <button id="{{ pid }}-lock" class="btn btn-ghost lock-toggle" onclick="toggleControlLock('{{ pid }}')">
+                {{ ic('lock') }} Lock controls
+            </button>
+            <button class="btn btn-emergency emergency-action" onclick="emergencyStop('{{ pid }}', '{{ p.label }}')">
+                {{ ic('stop') }} Emergency stop
+            </button>
+        </div>
+
+        <!-- Temperature & Material -->
+        <div class="section-head" onclick="toggleSection('{{ pid }}-temp')">
+            <span>{{ ic('thermo') }} Temperature &amp; Material</span>
+            <span id="{{ pid }}-temp-arrow" class="chevron">{{ ic('chevron') }}</span>
+        </div>
+        <div id="{{ pid }}-temp-content" class="collapse-body">
+            <div class="temp-controls">
+                <div class="preset-row">
+                    <button class="btn btn-ghost" onclick="preheat('{{ pid }}','PLA')">PLA</button>
+                    <button class="btn btn-ghost" onclick="preheat('{{ pid }}','PETG')">PETG</button>
+                    <button class="btn btn-ghost" onclick="preheat('{{ pid }}','ABS')">ABS</button>
+                    <button class="btn btn-ghost cool" onclick="cooldown('{{ pid }}')">{{ ic('snow') }} Cooldown</button>
+                </div>
+                <div class="set-row">
+                    <label>Hotend<input type="number" id="{{ pid }}-set-hotend" min="0" max="300" step="5" placeholder="°C"></label>
+                    <label>Bed<input type="number" id="{{ pid }}-set-bed" min="0" max="120" step="5" placeholder="°C"></label>
+                    <button class="btn btn-primary" onclick="applyTemp('{{ pid }}')">Set</button>
+                </div>
+                <div class="set-row">
+                    <label>Filament (mm)<input type="number" id="{{ pid }}-extrude-amt" value="5" min="0.1" max="100" step="1"></label>
+                    <button class="btn btn-ghost" onclick="extrude('{{ pid }}', 1)">{{ ic('plus') }} Extrude</button>
+                    <button class="btn btn-ghost" onclick="extrude('{{ pid }}', -1)">{{ ic('minus') }} Retract</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Temperature Graph -->
+        <div class="section-head" onclick="toggleSection('{{ pid }}-graph')">
+            <span>{{ ic('chart') }} Temperature Graph</span>
+            <span id="{{ pid }}-graph-arrow" class="chevron">{{ ic('chevron') }}</span>
+        </div>
+        <div id="{{ pid }}-graph-content" class="collapse-body">
+            <canvas id="{{ pid }}-temp-canvas" class="temp-graph-canvas" width="300" height="250"></canvas>
+        </div>
+
+        <!-- Camera -->
+        <div class="section-head" onclick="toggleSection('{{ pid }}-camera')">
+            <span>{{ ic('camera') }} Camera</span>
+            <span id="{{ pid }}-camera-arrow" class="chevron">{{ ic('chevron') }}</span>
+        </div>
+        <div id="{{ pid }}-camera-content" class="collapse-body">
+            <div class="camera">
+                <img class="camera-stream" data-printer="{{ pid }}" data-stream="{{ p.camera }}" src="{{ p.camera }}" alt="{{ p.label }} camera">
+            </div>
+            <div class="camera-tools">
+                <button class="btn btn-ghost" onclick="openCameraModal('{{ pid }}', '{{ p.label }}')">{{ ic('expand') }} Fullscreen</button>
+                <button class="btn btn-ghost" onclick="downloadSnapshot('{{ pid }}', '{{ p.label }}')">{{ ic('download') }} Snapshot</button>
+            </div>
+        </div>
+
+        <!-- Axis Controller -->
+        <div class="section-head" onclick="toggleSection('{{ pid }}-axis')">
+            <span>{{ ic('move') }} Axis Control</span>
+            <span id="{{ pid }}-axis-arrow" class="chevron">{{ ic('chevron') }}</span>
+        </div>
+        <div id="{{ pid }}-axis-content" class="collapse-body">
+            <div class="axis-controls">
+                <label class="distance">Distance (mm)
+                    <input type="number" id="{{ pid }}-move-distance" value="10" min="0.1" max="50" step="0.1">
+                </label>
+
+                <div class="axis-section">
+                    <h4>X Axis</h4>
+                    <button class="btn btn-ghost" onclick="moveAxis('{{ pid }}', 'x', -1)">{{ ic('left') }} X-</button>
+                    <button class="btn btn-ghost" onclick="homeAxis('{{ pid }}', 'x')">{{ ic('home') }} X</button>
+                    <button class="btn btn-ghost" onclick="moveAxis('{{ pid }}', 'x', 1)">X+ {{ ic('right') }}</button>
+                </div>
+
+                <div class="axis-section">
+                    <h4>Y Axis</h4>
+                    <button class="btn btn-ghost" onclick="moveAxis('{{ pid }}', 'y', -1)">{{ ic('left') }} Y-</button>
+                    <button class="btn btn-ghost" onclick="homeAxis('{{ pid }}', 'y')">{{ ic('home') }} Y</button>
+                    <button class="btn btn-ghost" onclick="moveAxis('{{ pid }}', 'y', 1)">Y+ {{ ic('right') }}</button>
+                </div>
+
+                <div class="axis-section">
+                    <h4>Z Axis</h4>
+                    <button class="btn btn-ghost" onclick="moveAxis('{{ pid }}', 'z', -1)">{{ ic('down') }} Z-</button>
+                    <button class="btn btn-ghost" onclick="homeAxis('{{ pid }}', 'z')">{{ ic('home') }} Z</button>
+                    <button class="btn btn-ghost" onclick="moveAxis('{{ pid }}', 'z', 1)">Z+ {{ ic('up') }}</button>
+                </div>
+
+                <button class="btn btn-warn home-all" onclick="homeAll('{{ pid }}')">{{ ic('home') }} Home All</button>
+            </div>
+        </div>
+    </section>
+    {% endfor %}
+
+    <section class="card ops-card wide-card">
+        <div class="card-head">
+            <h2>{{ ic('history') }} Print History</h2>
+            <div class="card-actions">
+                <span id="history-success" class="status state-idle">0%</span>
+                <button class="btn btn-ghost small-action" onclick="exportHistoryCsv()">{{ ic('download') }} CSV</button>
+                <button class="btn btn-ghost small-action" onclick="exportDashboardData()">{{ ic('download') }} Export</button>
+            </div>
+        </div>
+        <div class="metric-grid">
+            <div class="metric"><span>Total</span><b id="hist-total">0</b></div>
+            <div class="metric good"><span>Finished</span><b id="hist-finished">0</b></div>
+            <div class="metric warn"><span>Cancelled</span><b id="hist-cancelled">0</b></div>
+            <div class="metric bad"><span>Failed</span><b id="hist-failed">0</b></div>
+            <div class="metric"><span>Filament</span><b id="hist-filament">0g</b></div>
+            <div class="metric"><span>Material Cost</span><b id="hist-cost">$0.00</b></div>
+        </div>
+        <div id="history-list" class="data-list empty-list">No print history yet.</div>
+    </section>
+
+    <section class="card ops-card wide-card">
+        <div class="card-head">
+            <h2>{{ ic('spool') }} Filament Tracker</h2>
+        </div>
+        <div class="filament-grid">
+            {% for pid, p in printers.items() %}
+            <div class="filament-panel" data-filament="{{ pid }}">
+                <div class="panel-head">
+                    <strong>{{ p.label }}</strong>
+                    <span id="{{ pid }}-filament-percent" class="mini-chip">--</span>
+                </div>
+                <div class="form-grid">
+                    <label>Brand<input id="{{ pid }}-fil-brand" type="text" maxlength="80"></label>
+                    <label>Material<input id="{{ pid }}-fil-material" type="text" maxlength="24" placeholder="PLA"></label>
+                    <label>Color<input id="{{ pid }}-fil-color" type="text" maxlength="40"></label>
+                    <label>Spool g<input id="{{ pid }}-fil-spool" type="number" min="0" step="1"></label>
+                    <label>Left g<input id="{{ pid }}-fil-left" type="number" min="0" step="1"></label>
+                    <label>Cost<input id="{{ pid }}-fil-cost" type="number" min="0" step="0.01"></label>
+                    <label>Diameter<input id="{{ pid }}-fil-diameter" type="number" min="0.1" step="0.01"></label>
+                    <label>Density<input id="{{ pid }}-fil-density" type="number" min="0.1" step="0.01"></label>
+                    <label>Low g<input id="{{ pid }}-fil-low" type="number" min="0" step="1"></label>
+                </div>
+                <label class="check-label"><input id="{{ pid }}-fil-auto" type="checkbox"> Auto subtract finished prints</label>
+                <label class="wide-label">Notes<input id="{{ pid }}-fil-notes" type="text" maxlength="240"></label>
+                <button class="btn btn-primary" onclick="saveFilament('{{ pid }}')">Save filament</button>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="card ops-card wide-card">
+        <div class="card-head">
+            <h2>{{ ic('wrench') }} Maintenance Log</h2>
+        </div>
+        <div class="maintenance-layout">
+            <form id="maintenance-form" class="maintenance-form">
+                <label>Printer
+                    <select id="maint-printer">
+                        <option value="all">All printers</option>
+                        {% for pid, p in printers.items() %}
+                        <option value="{{ pid }}">{{ p.label }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Task<input id="maint-task" type="text" maxlength="120" placeholder="Nozzle change"></label>
+                <label>Due<input id="maint-due" type="date"></label>
+                <label class="wide-label">Notes<input id="maint-notes" type="text" maxlength="300"></label>
+                <button class="btn btn-primary" type="submit">{{ ic('plus') }} Add entry</button>
+            </form>
+            <div id="maintenance-list" class="data-list empty-list">No maintenance entries yet.</div>
+        </div>
+    </section>
+
+    <section class="card ops-card wide-card">
+        <div class="card-head">
+            <h2>{{ ic('bell') }} Notifications</h2>
+            <button class="btn btn-ghost notify-permission" onclick="enableBrowserNotifications()">Browser alerts</button>
+        </div>
+        <div id="notification-channels" class="channel-grid"></div>
+    </section>
+
+    <section class="card ops-card wide-card">
+        <div class="card-head">
+            <h2>{{ ic('clock') }} Recent Activity</h2>
+        </div>
+        <div id="activity-list" class="data-list empty-list">No activity yet.</div>
+    </section>
+
+</main>
+
+<div id="camera-modal" class="camera-modal" hidden>
+    <div class="camera-modal-top">
+        <strong id="camera-modal-title">Camera</strong>
+        <div class="camera-modal-actions">
+            <button class="icon-btn" onclick="refreshModalCamera()" title="Refresh camera" aria-label="Refresh camera">
+                {{ ic('camera') }}
+            </button>
+            <button class="icon-btn" onclick="closeCameraModal()" title="Close camera" aria-label="Close camera">
+                {{ ic('x') }}
+            </button>
+        </div>
+    </div>
+    <img id="camera-modal-img" alt="Fullscreen camera">
+</div>
+
+<div id="toasts" class="toasts" aria-live="polite"></div>
 
 <script>
 const socket = io();
 
-/* ---------- CAMERA DETECTION ---------- */
+/* Printer config injected from the server (no API keys exposed). */
+const PRINTERS = {{ printers|tojson }};
+const PRINTER_IDS = Object.keys(PRINTERS);
+const CSRF_TOKEN = {{ csrf_token|tojson }};
+let dashboardData = null;
+let controlLocks = {};
+let currentModalPrinter = null;
+const healthState = {};
+const filamentLowState = {};
+
+/* ---------- COLLAPSIBLE SECTIONS ---------- */
+function toggleSection(key) {
+    const content = document.getElementById(`${key}-content`);
+    const arrow = document.getElementById(`${key}-arrow`);
+    if (!content) return;
+
+    const open = content.classList.toggle("open");
+    if (arrow) arrow.classList.toggle("open", open);
+    localStorage.setItem(`open-${key}`, open);
+
+    // Camera sections: force a fresh stream when opened.
+    if (key.endsWith("-camera") && open) {
+        refreshCameraStream(key.replace("-camera", ""));
+    }
+    // Graphs need a resize after the container animates open.
+    if (key.endsWith("-graph")) {
+        const pid = key.replace("-graph", "");
+        setTimeout(() => chartInstances[pid] && chartInstances[pid].resize(), 350);
+    }
+}
+
+function restoreSection(key) {
+    const open = localStorage.getItem(`open-${key}`) === "true";
+    if (!open) return;
+    const content = document.getElementById(`${key}-content`);
+    const arrow = document.getElementById(`${key}-arrow`);
+    if (content) content.classList.add("open");
+    if (arrow) arrow.classList.add("open");
+    return open;
+}
+
+/* ---------- CAMERA STREAM HANDLING ---------- */
 let cameraCheckInterval = null;
 let isPageActive = true;
 
-function refreshCameraStream(printer) {
-    // Minimal delay reconnect - just force new frame with timestamp
-    if (printer === "minimus") {
-        const img = document.querySelector('[src*="cam_Ender3minimus"]');
-        if (img) {
-            // Just add/update timestamp to force reconnect without clearing src
-            img.src = "http://192.168.2.51/cam_Ender3minimus/?action=stream&t=" + Date.now();
-            console.log("🔄 Reconnecting Minimus stream");
-        }
-    } else if (printer === "sprite") {
-        const img = document.querySelector('[src*="cam_Ender3Sprite"]');
-        if (img) {
-            img.src = "http://192.168.2.51/cam_Ender3Sprite/?action=stream&t=" + Date.now();
-            console.log("🔄 Reconnecting Sprite stream");
-        }
+function streamEl(pid) {
+    return document.querySelector(`.camera-stream[data-printer="${pid}"]`);
+}
+
+function refreshCameraStream(pid) {
+    const img = streamEl(pid);
+    if (img && img.dataset.stream) {
+        const base = img.dataset.stream;
+        const sep = base.includes("?") ? "&" : "?";
+        img.src = `${base}${sep}t=${Date.now()}`;
+        console.log("Reconnecting stream:", pid);
     }
 }
 
 function refreshAllCameraStreams() {
-    // Force reload all camera streams without clearing
-    const minimusImg = document.querySelector('[src*="cam_Ender3minimus"]');
-    const spriteImg = document.querySelector('[src*="cam_Ender3Sprite"]');
-    
-    if (minimusImg && minimusImg.src) {
-        minimusImg.src = "http://192.168.2.51/cam_Ender3minimus/?action=stream&t=" + Date.now();
-        console.log("🔄 Refreshing Minimus camera stream");
-    }
-    
-    if (spriteImg && spriteImg.src) {
-        spriteImg.src = "http://192.168.2.51/cam_Ender3Sprite/?action=stream&t=" + Date.now();
-        console.log("🔄 Refreshing Sprite camera stream");
+    PRINTER_IDS.forEach(refreshCameraStream);
+}
+
+function cameraStreamUrl(pid) {
+    const img = streamEl(pid);
+    return img?.dataset.stream || "";
+}
+
+function openCameraModal(pid, label) {
+    currentModalPrinter = pid;
+    const modal = document.getElementById("camera-modal");
+    const title = document.getElementById("camera-modal-title");
+    const img = document.getElementById("camera-modal-img");
+    const base = cameraStreamUrl(pid);
+    const sep = base.includes("?") ? "&" : "?";
+    title.textContent = `${label} camera`;
+    img.src = base ? `${base}${sep}fullscreen=${Date.now()}` : "";
+    modal.hidden = false;
+    document.body.classList.add("modal-open");
+}
+
+function closeCameraModal() {
+    const modal = document.getElementById("camera-modal");
+    const img = document.getElementById("camera-modal-img");
+    modal.hidden = true;
+    img.src = "";
+    currentModalPrinter = null;
+    document.body.classList.remove("modal-open");
+}
+
+function refreshModalCamera() {
+    if (!currentModalPrinter) return;
+    const img = document.getElementById("camera-modal-img");
+    const base = cameraStreamUrl(currentModalPrinter);
+    const sep = base.includes("?") ? "&" : "?";
+    img.src = base ? `${base}${sep}fullscreen=${Date.now()}` : "";
+}
+
+async function downloadSnapshot(pid, label) {
+    try {
+        const res = await fetch(`/api/camera/${pid}/snapshot`);
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.error || `Snapshot failed (${res.status})`);
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${label.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-${stamp}.jpg`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        toast(`${label}: snapshot downloaded`, "ok");
+    } catch (e) {
+        toast(e.message || "Snapshot failed", "err");
     }
 }
 
-function checkCameraConnection(cameraUrl, cameraElement) {
-    // Test camera connectivity using a simple fetch request
-    fetch(cameraUrl, { method: 'HEAD', mode: 'no-cors' })
-        .then(() => {
-            // Camera responds - use normal border
-            cameraElement.parentElement.style.borderColor = "#333";
-            console.log("✅ Camera online:", cameraUrl);
-        })
-        .catch(() => {
-            // Camera offline - red border indicator
-            cameraElement.parentElement.style.borderColor = "#F44336";
-            console.log("❌ Camera offline:", cameraUrl);
-        });
+function checkCameraConnection(img) {
+    fetch(img.dataset.stream, { method: "HEAD", mode: "no-cors" })
+        .then(() => { img.parentElement.classList.remove("offline"); })
+        .catch(() => { img.parentElement.classList.add("offline"); });
 }
 
 function checkAllCameras() {
     if (!isPageActive) return;
-    
-    const minimusImg = document.querySelector('[src*="cam_Ender3minimus"]');
-    const spriteImg = document.querySelector('[src*="cam_Ender3Sprite"]');
-    
-    if (minimusImg) {
-        checkCameraConnection("http://192.168.2.51/cam_Ender3minimus/?action=stream", minimusImg);
-    }
-    
-    if (spriteImg) {
-        checkCameraConnection("http://192.168.2.51/cam_Ender3Sprite/?action=stream", spriteImg);
-    }
+    PRINTER_IDS.forEach(pid => {
+        const img = streamEl(pid);
+        if (img) checkCameraConnection(img);
+    });
 }
 
 function startCameraCheck() {
-    // Initial check immediately
     checkAllCameras();
-    // Then check every 15 seconds
     if (cameraCheckInterval) clearInterval(cameraCheckInterval);
     cameraCheckInterval = setInterval(checkAllCameras, 15000);
 }
 
 function stopCameraCheck() {
-    if (cameraCheckInterval) {
-        clearInterval(cameraCheckInterval);
-        cameraCheckInterval = null;
-    }
+    if (cameraCheckInterval) clearInterval(cameraCheckInterval);
+    cameraCheckInterval = null;
 }
 
-/* Phone wake/sleep detection */
+/* Phone wake / window focus recovery for MJPEG streams */
 document.addEventListener("visibilitychange", () => {
     isPageActive = !document.hidden;
-    
     if (isPageActive) {
-        console.log("📱 Page visible - refreshing cameras");
-        setTimeout(() => {
-            refreshAllCameraStreams();
-            checkAllCameras();
-            startCameraCheck();
-        }, 500);
+        setTimeout(() => { refreshAllCameraStreams(); startCameraCheck(); }, 500);
     } else {
-        console.log("📱 Page hidden - pausing camera checks");
         stopCameraCheck();
     }
 });
-
 window.addEventListener("focus", () => {
     isPageActive = true;
-    console.log("🔄 Window focused - refreshing cameras");
+    setTimeout(() => { refreshAllCameraStreams(); startCameraCheck(); }, 500);
+});
+window.addEventListener("blur", () => { isPageActive = false; stopCameraCheck(); });
+
+/* ---------- TOASTS ---------- */
+function toast(msg, type = "ok") {
+    const wrap = document.getElementById("toasts");
+    const el = document.createElement("div");
+    el.className = `toast toast-${type}`;
+    el.textContent = msg;
+    wrap.appendChild(el);
+    requestAnimationFrame(() => el.classList.add("show"));
     setTimeout(() => {
-        refreshAllCameraStreams();
-        checkAllCameras();
-        startCameraCheck();
-    }, 500);
-});
+        el.classList.remove("show");
+        setTimeout(() => el.remove(), 300);
+    }, 3200);
+}
 
-window.addEventListener("blur", () => {
-    isPageActive = false;
-    console.log("😴 Window blurred - pausing camera checks");
-    stopCameraCheck();
-});
+/* ---------- CONTROL HELPER (with feedback) ---------- */
+async function postControl(pid, path, body, okMsg) {
+    try {
+        const headers = { "X-CSRF-Token": CSRF_TOKEN };
+        if (body) headers["Content-Type"] = "application/json";
 
-/* ---------- CAMERA TOGGLE ---------- */
-function toggleCamera(printer) {
-    const content = document.getElementById(`${printer}-camera-content`);
-    const arrow = document.getElementById(`${printer}-camera-arrow`);
-
-    const open = content.classList.toggle("open");
-    arrow.classList.toggle("open");
-
-    localStorage.setItem(`cameraOpen-${printer}`, open);
-    
-    // Refresh camera stream when opened - minimal delay
-    if (open) {
-        console.log("📹 Camera opened:", printer);
-        setTimeout(() => {
-            refreshCameraStream(printer);
-        }, 50);
-    } else {
-        console.log("📹 Camera closed:", printer);
+        const res = await fetch(`/api/control/${pid}/${path}`, {
+            method: "POST",
+            headers,
+            body: body ? JSON.stringify(body) : undefined,
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.ok !== false) {
+            if (okMsg) toast(okMsg, "ok");
+            return true;
+        }
+        toast(data.error || `Action failed (${res.status})`, "err");
+        return false;
+    } catch (e) {
+        toast("Network error — is the printer reachable?", "err");
+        return false;
     }
 }
 
-/* ---------- AXIS CONTROLLER TOGGLE ---------- */
-function toggleAxisController(printer) {
-    const content = document.getElementById(`${printer}-axis-content`);
-    const arrow = document.getElementById(`${printer}-axis-arrow`);
-
-    const open = content.classList.toggle("open");
-    arrow.classList.toggle("open");
-
-    localStorage.setItem(`axisOpen-${printer}`, open);
-}
-
-/* ---------- AXIS MOVEMENT ---------- */
-function moveAxis(printer, axis, direction) {
-    const distance = document.getElementById(`${printer}-move-distance`)?.value || 10;
-    const request = {
-        command: "jog",
-        axes: {}
-    };
-    request.axes[axis] = direction * parseFloat(distance);
-    
-    fetch(`/api/control/${printer}/jog`, {
+async function postJson(url, body) {
+    const res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(request)
+        headers: { "Content-Type": "application/json", "X-CSRF-Token": CSRF_TOKEN },
+        body: JSON.stringify(body || {}),
     });
-    
-    console.log(`🎯 Moving ${printer} ${axis} by ${direction * distance}mm`);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.ok === false) {
+        throw new Error(data.error || `Request failed (${res.status})`);
+    }
+    return data;
 }
 
-/* ---------- HOME AXIS ---------- */
-function homeAxis(printer, axis) {
-    const request = {
-        command: "home",
-        axes: [axis]
+async function loadDashboardData() {
+    try {
+        const res = await fetch("/api/dashboard-data");
+        const data = await res.json();
+        if (!res.ok || data.ok === false) throw new Error(data.error || "Failed to load dashboard data");
+        dashboardData = data;
+        controlLocks = data.control_locks || {};
+        renderHistory(data.history || [], data.history_stats || {});
+        renderActivity(data.activity || []);
+        renderFilament(data.filament || {});
+        renderMaintenance(data.maintenance || []);
+        renderNotificationChannels(data.notification_channels || {});
+        renderPrinterHealth(data.health || {});
+        renderControlLocks();
+    } catch (e) {
+        toast(e.message || "Failed to load dashboard data", "err");
+    }
+}
+
+function formatDuration(seconds) {
+    seconds = Math.max(0, Number(seconds) || 0);
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    if (h) return `${h}h ${m}m`;
+    return `${m}m`;
+}
+
+function formatDate(value) {
+    if (!value) return "--";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    return d.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+function renderHistory(history, stats) {
+    document.getElementById("hist-total").textContent = stats.total || 0;
+    document.getElementById("hist-finished").textContent = stats.finished || 0;
+    document.getElementById("hist-cancelled").textContent = stats.cancelled || 0;
+    document.getElementById("hist-failed").textContent = stats.failed || 0;
+    document.getElementById("hist-filament").textContent = `${(stats.filament_used_g || 0).toFixed(1)}g`;
+    document.getElementById("hist-cost").textContent = `$${(stats.filament_cost || 0).toFixed(2)}`;
+    const success = stats.success_rate || 0;
+    document.getElementById("history-success").textContent = `${success}% success`;
+
+    const list = document.getElementById("history-list");
+    if (!history.length) {
+        list.className = "data-list empty-list";
+        list.textContent = "No print history yet.";
+        return;
+    }
+
+    list.className = "data-list";
+    list.innerHTML = history.slice(0, 12).map(item => {
+        const status = item.status || "finished";
+        const usage = item.filament_used_g
+            ? ` - ${Number(item.filament_used_g).toFixed(1)}g ${item.filament_material || ""} / $${Number(item.filament_cost || 0).toFixed(2)}`
+            : "";
+        return `
+            <div class="data-row">
+                <div class="row-main">
+                    <strong title="${escapeHtml(item.file_name || "")}">${escapeHtml(item.file_name || "Unknown file")}</strong>
+                    <span>${escapeHtml(item.printer_label || item.printer || "")}${escapeHtml(usage)}</span>
+                </div>
+                <span class="pill pill-${status}">${escapeHtml(status)}</span>
+                <span class="row-muted">${formatDuration(item.duration_s)}</span>
+                <span class="row-muted">${formatDate(item.ended_at)}</span>
+            </div>
+        `;
+    }).join("");
+}
+
+function renderActivity(activity) {
+    const list = document.getElementById("activity-list");
+    if (!activity.length) {
+        list.className = "data-list empty-list";
+        list.textContent = "No activity yet.";
+        return;
+    }
+
+    const severityClass = {
+        ok: "pill-finished",
+        info: "pill-info",
+        warn: "pill-cancelled",
+        danger: "pill-failed",
     };
-    
-    fetch(`/api/control/${printer}/home`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(request)
-    });
-    
-    console.log(`🏠 Homing ${printer} ${axis}`);
+
+    list.className = "data-list";
+    list.innerHTML = activity.slice(0, 16).map(item => {
+        const severity = item.severity || "info";
+        return `
+            <div class="data-row activity-row">
+                <div class="row-main">
+                    <strong>${escapeHtml(item.action || "")}</strong>
+                    <span>${escapeHtml(item.printer_label || "Dashboard")}${item.detail ? " - " + escapeHtml(item.detail) : ""}</span>
+                </div>
+                <span class="pill ${severityClass[severity] || "pill-info"}">${escapeHtml(severity)}</span>
+                <span class="row-muted">${formatDate(item.at)}</span>
+            </div>
+        `;
+    }).join("");
 }
 
-/* ---------- HOME ALL ---------- */
-function homeAll(printer) {
-    const request = {
-        command: "home",
-        axes: ["x", "y", "z"]
+function renderFilament(filament) {
+    PRINTER_IDS.forEach(pid => {
+        const data = filament[pid] || {};
+        setInput(`${pid}-fil-brand`, data.brand || "");
+        setInput(`${pid}-fil-material`, data.material || "PLA");
+        setInput(`${pid}-fil-color`, data.color || "");
+        setInput(`${pid}-fil-spool`, data.spool_weight_g ?? 1000);
+        setInput(`${pid}-fil-left`, data.remaining_g ?? 0);
+        setInput(`${pid}-fil-cost`, data.cost ?? 0);
+        setInput(`${pid}-fil-diameter`, data.diameter_mm ?? 1.75);
+        setInput(`${pid}-fil-density`, data.density_g_cm3 ?? 1.24);
+        setInput(`${pid}-fil-low`, data.low_threshold_g ?? 100);
+        const auto = document.getElementById(`${pid}-fil-auto`);
+        if (auto) auto.checked = data.auto_deduct !== false;
+        setInput(`${pid}-fil-notes`, data.notes || "");
+
+        const spool = Number(data.spool_weight_g) || 0;
+        const left = Number(data.remaining_g) || 0;
+        const threshold = Number(data.low_threshold_g) || 0;
+        const pct = spool > 0 ? Math.max(0, Math.min(100, (left / spool) * 100)) : 0;
+        const costPerG = spool > 0 ? (Number(data.cost || 0) / spool) : 0;
+        const chip = document.getElementById(`${pid}-filament-percent`);
+        const isLow = threshold > 0 && left <= threshold;
+        if (chip) {
+            chip.textContent = `${pct.toFixed(0)}% left / $${costPerG.toFixed(3)}/g`;
+            chip.classList.toggle("low", isLow);
+        }
+        const hadPrevious = Object.prototype.hasOwnProperty.call(filamentLowState, pid);
+        if (hadPrevious && !filamentLowState[pid] && isLow) {
+            notify(`${PRINTERS[pid].label}: filament low`, `${left.toFixed(0)}g remaining.`);
+        }
+        filamentLowState[pid] = isLow;
+    });
+}
+
+function renderMaintenance(entries) {
+    const list = document.getElementById("maintenance-list");
+    if (!entries.length) {
+        list.className = "data-list empty-list";
+        list.textContent = "No maintenance entries yet.";
+        return;
+    }
+
+    list.className = "data-list";
+    list.innerHTML = entries.slice(0, 16).map(entry => {
+        const done = Boolean(entry.completed_at);
+        const dueText = entry.due_date ? `Due ${escapeHtml(entry.due_date)}` : "No due date";
+        const action = done
+            ? `<span class="pill pill-finished">Done</span>`
+            : `<button class="btn btn-ghost" onclick="completeMaintenance('${entry.id}')">Done</button>`;
+        return `
+            <div class="data-row maintenance-row ${done ? "done" : ""}">
+                <div class="row-main">
+                    <strong>${escapeHtml(entry.task || "")}</strong>
+                    <span>${escapeHtml(entry.printer_label || "")} ${entry.notes ? "- " + escapeHtml(entry.notes) : ""}</span>
+                </div>
+                <span class="row-muted">${dueText}</span>
+                ${action}
+            </div>
+        `;
+    }).join("");
+}
+
+function renderNotificationChannels(channels) {
+    const labels = {
+        browser: "Browser",
+        email: "Email",
+        discord: "Discord",
+        telegram: "Telegram",
+        webhook: "Webhook",
+        sms: "SMS",
     };
-    
-    fetch(`/api/control/${printer}/home`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(request)
-    });
-    
-    console.log(`🏠 Homing all axes for ${printer}`);
+    const wrap = document.getElementById("notification-channels");
+    wrap.innerHTML = Object.keys(labels).map(key => {
+        const on = Boolean(channels[key]);
+        return `<span class="channel ${on ? "on" : "off"}">${labels[key]} ${on ? "on" : "off"}</span>`;
+    }).join("");
 }
 
-window.addEventListener("DOMContentLoaded", () => {
-    ["minimus", "sprite"].forEach(printer => {
-        // Camera state
-        const cameraOpen = localStorage.getItem(`cameraOpen-${printer}`) === "true";
-        const cameraContent = document.getElementById(`${printer}-camera-content`);
-        const cameraArrow = document.getElementById(`${printer}-camera-arrow`);
+function renderPrinterHealth(health) {
+    PRINTER_IDS.forEach(pid => {
+        const entry = health[pid] || {};
+        const el = document.getElementById(`${pid}-health`);
+        if (!el) return;
 
-        if (cameraOpen) {
-            cameraContent.classList.add("open");
-            cameraArrow.classList.add("open");
-            setTimeout(() => {
-                refreshCameraStream(printer);
-            }, 50);
+        if (entry.configured) {
+            const hadPrevious = Object.prototype.hasOwnProperty.call(healthState, pid);
+            const previous = healthState[pid];
+            healthState[pid] = Boolean(entry.online);
+            if (hadPrevious && previous !== healthState[pid]) {
+                const label = PRINTERS[pid].label;
+                if (healthState[pid]) {
+                    toast(`${label}: back online`, "ok");
+                } else {
+                    notify(`${label}: offline`, entry.last_error || "Printer is not responding.");
+                }
+            }
         }
 
-        // Axis controller state
-        const axisOpen = localStorage.getItem(`axisOpen-${printer}`) === "true";
-        const axisContent = document.getElementById(`${printer}-axis-content`);
-        const axisArrow = document.getElementById(`${printer}-axis-arrow`);
-
-        if (axisOpen) {
-            axisContent.classList.add("open");
-            axisArrow.classList.add("open");
+        if (!entry.configured) {
+            el.innerHTML = `<span class="health-pill health-bad">${iconText("signal")} Not configured</span>`;
+            return;
         }
+
+        const cls = entry.online ? "health-good" : "health-bad";
+        const text = entry.online
+            ? `Online ${entry.latency_ms ?? "--"}ms`
+            : `Offline${entry.last_ok ? ` / last ok ${formatDate(entry.last_ok)}` : ""}`;
+        const title = entry.last_error ? ` title="${escapeHtml(entry.last_error)}"` : "";
+        el.innerHTML = `<span class="health-pill ${cls}"${title}>${iconText("signal")} ${escapeHtml(text)}</span>`;
     });
-});
+}
+
+function renderControlLocks() {
+    PRINTER_IDS.forEach(applyControlLock);
+}
+
+function applyControlLock(pid) {
+    const locked = Boolean(controlLocks[pid]);
+    const card = document.querySelector(`.printer-card[data-printer="${pid}"]`);
+    const btn = document.getElementById(`${pid}-lock`);
+    if (card) {
+        card.classList.toggle("controls-locked", locked);
+        card.querySelectorAll("button").forEach(button => {
+            if (!button.classList.contains("lock-toggle") && !button.classList.contains("emergency-action")) {
+                button.disabled = locked;
+            }
+        });
+    }
+    if (btn) {
+        btn.classList.toggle("locked", locked);
+        btn.innerHTML = locked ? `${iconText("unlock")} Unlock controls` : `${iconText("lock")} Lock controls`;
+    }
+}
+
+function iconText(name) {
+    if (name === "unlock") {
+        return `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.5-2.2"/></svg>`;
+    }
+    if (name === "signal") {
+        return `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 20h.01"/><path d="M7 20v-4"/><path d="M12 20v-8"/><path d="M17 20V8"/><path d="M22 20V4"/></svg>`;
+    }
+    return `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`;
+}
+
+function setInput(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.value = value;
+}
+
+function readNumber(id) {
+    const value = document.getElementById(id)?.value;
+    return value === "" ? 0 : Number(value);
+}
+
+function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, ch => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+    }[ch]));
+}
+
+async function saveFilament(pid) {
+    try {
+        await postJson(`/api/filament/${pid}`, {
+            brand: document.getElementById(`${pid}-fil-brand`).value,
+            material: document.getElementById(`${pid}-fil-material`).value,
+            color: document.getElementById(`${pid}-fil-color`).value,
+            spool_weight_g: readNumber(`${pid}-fil-spool`),
+            remaining_g: readNumber(`${pid}-fil-left`),
+            cost: readNumber(`${pid}-fil-cost`),
+            diameter_mm: readNumber(`${pid}-fil-diameter`),
+            density_g_cm3: readNumber(`${pid}-fil-density`),
+            low_threshold_g: readNumber(`${pid}-fil-low`),
+            auto_deduct: document.getElementById(`${pid}-fil-auto`).checked,
+            notes: document.getElementById(`${pid}-fil-notes`).value,
+        });
+        toast(`${PRINTERS[pid].label}: filament saved`, "ok");
+        loadDashboardData();
+    } catch (e) {
+        toast(e.message, "err");
+    }
+}
+
+async function addMaintenance(event) {
+    event.preventDefault();
+    try {
+        await postJson("/api/maintenance", {
+            printer: document.getElementById("maint-printer").value,
+            task: document.getElementById("maint-task").value,
+            due_date: document.getElementById("maint-due").value,
+            notes: document.getElementById("maint-notes").value,
+        });
+        document.getElementById("maintenance-form").reset();
+        toast("Maintenance entry added", "ok");
+        loadDashboardData();
+    } catch (e) {
+        toast(e.message, "err");
+    }
+}
+
+async function completeMaintenance(id) {
+    try {
+        await postJson(`/api/maintenance/${id}/complete`, {});
+        toast("Maintenance entry completed", "ok");
+        loadDashboardData();
+    } catch (e) {
+        toast(e.message, "err");
+    }
+}
+
+async function toggleControlLock(pid) {
+    try {
+        const next = !Boolean(controlLocks[pid]);
+        const data = await postJson(`/api/printer/${pid}/lock`, { locked: next });
+        controlLocks[pid] = data.locked;
+        applyControlLock(pid);
+        toast(`${PRINTERS[pid].label}: controls ${data.locked ? "locked" : "unlocked"}`, "ok");
+    } catch (e) {
+        toast(e.message, "err");
+    }
+}
+
+async function emergencyStop(pid, label) {
+    const expected = `STOP ${label}`;
+    const typed = prompt(`Type ${expected} to emergency stop ${label}.`);
+    if (typed !== expected) {
+        toast("Emergency stop cancelled", "err");
+        return;
+    }
+    const ok = await postControl(pid, "emergency", { confirm: expected }, `${label}: emergency stop sent`);
+    if (ok) {
+        controlLocks[pid] = true;
+        applyControlLock(pid);
+        loadDashboardData();
+    }
+}
+
+function enableBrowserNotifications() {
+    if (!("Notification" in window)) {
+        toast("Browser notifications are not supported here", "err");
+        return;
+    }
+    Notification.requestPermission()
+        .then(permission => toast(`Browser alerts ${permission}`, permission === "granted" ? "ok" : "err"))
+        .catch(() => toast("Could not request browser notifications", "err"));
+}
+
+function exportDashboardData() {
+    window.location.href = "/api/dashboard-data/export";
+}
+
+function exportHistoryCsv() {
+    window.location.href = "/api/history/export.csv";
+}
+
+/* ---------- TEMPERATURE & MATERIAL ---------- */
+const PRESETS = {
+    PLA:  { tool: 200, bed: 60 },
+    PETG: { tool: 240, bed: 80 },
+    ABS:  { tool: 245, bed: 100 },
+};
+function preheat(pid, mat) {
+    const t = PRESETS[mat];
+    postControl(pid, "temp", { tool: t.tool, bed: t.bed }, `${PRINTERS[pid].label}: preheating ${mat} (${t.tool}/${t.bed}°)`);
+}
+function cooldown(pid) {
+    postControl(pid, "temp", { tool: 0, bed: 0 }, `${PRINTERS[pid].label}: cooling down`);
+}
+function applyTemp(pid) {
+    const h = document.getElementById(`${pid}-set-hotend`).value;
+    const b = document.getElementById(`${pid}-set-bed`).value;
+    const body = {};
+    if (h !== "") body.tool = parseFloat(h);
+    if (b !== "") body.bed = parseFloat(b);
+    if (Object.keys(body).length === 0) { toast("Enter a hotend or bed temperature", "err"); return; }
+    postControl(pid, "temp", body, `${PRINTERS[pid].label}: target set`);
+}
+function extrude(pid, dir) {
+    const amt = (parseFloat(document.getElementById(`${pid}-extrude-amt`).value) || 5) * dir;
+    postControl(pid, "extrude", { amount: amt }, `${PRINTERS[pid].label}: ${dir > 0 ? "extruding" : "retracting"} ${Math.abs(amt)}mm`);
+}
+
+/* ---------- AXIS CONTROL ---------- */
+function moveAxis(pid, axis, direction) {
+    const distance = document.getElementById(`${pid}-move-distance`)?.value || 10;
+    const body = { command: "jog", axes: {} };
+    body.axes[axis] = direction * parseFloat(distance);
+    postControl(pid, "jog", body, `${PRINTERS[pid].label}: jog sent`);
+}
+
+function homeAxis(pid, axis) {
+    postControl(pid, "home", { command: "home", axes: [axis] }, `${PRINTERS[pid].label}: homing ${axis.toUpperCase()}`);
+}
+
+function homeAll(pid) {
+    postControl(pid, "home", { command: "home", axes: ["x", "y", "z"] }, `${PRINTERS[pid].label}: homing all axes`);
+}
+
+/* ---------- PAUSE / RESUME ---------- */
+function togglePauseResume(pid, state) {
+    const action = state.includes("pause") ? "resume" : "pause";
+    postControl(pid, action, null, `${PRINTERS[pid].label}: ${action}d`);
+}
 
 /* ---------- CLOCK ---------- */
 function updateClock() {
-    document.getElementById("clock").textContent =
-        new Date().toLocaleTimeString();
+    document.getElementById("clock").textContent = new Date().toLocaleTimeString();
 }
 setInterval(updateClock, 1000);
+updateClock();
 
 /* ---------- STATE COLORS ---------- */
 function stateClass(text) {
@@ -255,480 +969,264 @@ function stateClass(text) {
     return "state-error";
 }
 
-/* ---------- SMART PAUSE / RESUME ---------- */
-function togglePauseResume(printer, state) {
-    const action = state.includes("pause") ? "resume" : "pause";
-    fetch(`/api/control/${printer}/${action}`, { method: "POST" });
-}
-
-/* ---------- WEATHER TOGGLE ---------- */
-function toggleWeather() {
-    const content = document.getElementById("weather-content");
-    const arrow = document.getElementById("weather-arrow");
-
-    const open = content.classList.toggle("open");
-    arrow.textContent = open ? "▼" : "▶";
-
-    localStorage.setItem("weatherOpen", open);
-}
-
-window.addEventListener("DOMContentLoaded", () => {
-    const open = localStorage.getItem("weatherOpen") === "true";
-    const content = document.getElementById("weather-content");
-    const arrow = document.getElementById("weather-arrow");
-
-    if (open) {
-        content.classList.add("open");
-        arrow.textContent = "▼";
-    }
-    
-    // Start camera checks
-    startCameraCheck();
-});
-
-/* ---------- TEMP GRAPH TOGGLE ---------- */
-function toggleTempGraph(printer) {
-    const content = document.getElementById(`${printer}-graph-content`);
-    const arrow = document.getElementById(`${printer}-graph-arrow`);
-
-    const open = content.classList.toggle("open");
-    arrow.classList.toggle("open");
-
-    localStorage.setItem(`tempGraphOpen-${printer}`, open);
-
-    setTimeout(() => {
-        if (chartInstances[printer]) {
-            chartInstances[printer].resize();
-        }
-    }, 350);
-}
-
-window.addEventListener("DOMContentLoaded", () => {
-    ["minimus", "sprite"].forEach(printer => {
-        const open = localStorage.getItem(`tempGraphOpen-${printer}`) === "true";
-        const content = document.getElementById(`${printer}-graph-content`);
-        const arrow = document.getElementById(`${printer}-graph-arrow`);
-
-        if (open) {
-            content.classList.add("open");
-            arrow.classList.add("open");
-        }
-    });
-});
-
 /* ---------- TEMP HISTORY & CHARTS ---------- */
-const tempHistory = { minimus: [], sprite: [] };
-const chartInstances = { minimus: null, sprite: null };
+const tempHistory = {};
+const chartInstances = {};
 
-function initTempChart(printer) {
-    const canvas = document.getElementById(`${printer}-temp-canvas`);
+function initTempChart(pid) {
+    const canvas = document.getElementById(`${pid}-temp-canvas`);
     if (!canvas) return;
-    
-    const ctx = canvas.getContext("2d");
-    
-    chartInstances[printer] = new Chart(ctx, {
+    chartInstances[pid] = new Chart(canvas.getContext("2d"), {
         type: "line",
         data: {
             labels: [],
             datasets: [
                 {
-                    label: "Hotend (°C)",
-                    data: [],
-                    borderColor: "#FF6B6B",
-                    backgroundColor: "rgba(255, 107, 107, 0.1)",
-                    borderWidth: 2,
-                    pointRadius: 3,
-                    pointBackgroundColor: "#FF6B6B",
-                    tension: 0.4,
-                    fill: true
+                    label: "Hotend (°C)", data: [],
+                    borderColor: "#ff6b6b", backgroundColor: "rgba(255,107,107,0.12)",
+                    borderWidth: 2, pointRadius: 0, tension: 0.4, fill: true,
                 },
                 {
-                    label: "Bed (°C)",
-                    data: [],
-                    borderColor: "#4CAF50",
-                    backgroundColor: "rgba(76, 175, 80, 0.1)",
-                    borderWidth: 2,
-                    pointRadius: 3,
-                    pointBackgroundColor: "#4CAF50",
-                    tension: 0.4,
-                    fill: true
-                }
-            ]
+                    label: "Bed (°C)", data: [],
+                    borderColor: "#4ecdc4", backgroundColor: "rgba(78,205,196,0.12)",
+                    borderWidth: 2, pointRadius: 0, tension: 0.4, fill: true,
+                },
+            ],
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            animation: {
-                duration: 0
-            },
+            animation: { duration: 0 },
             plugins: {
-                legend: {
-                    display: true,
-                    labels: { 
-                        color: "#e0e0e0", 
-                        font: { size: 12 },
-                        padding: 15
-                    }
-                }
+                legend: { display: true, labels: { color: "#cbd5e1", font: { size: 12 }, padding: 14, usePointStyle: true } },
             },
             scales: {
-                y: {
-                    beginAtZero: false,
-                    min: 0,
-                    max: 300,
-                    ticks: { 
-                        color: "#999", 
-                        stepSize: 50,
-                        font: { size: 11 }
-                    },
-                    grid: { color: "#333" }
-                },
-                x: {
-                    ticks: { 
-                        color: "#999", 
-                        maxTicksLimit: 8,
-                        font: { size: 11 }
-                    },
-                    grid: { color: "#333" }
-                }
-            }
-        }
+                y: { min: 0, max: 300, ticks: { color: "#7e8aa3", stepSize: 50, font: { size: 11 } }, grid: { color: "rgba(255,255,255,0.06)" } },
+                x: { ticks: { color: "#7e8aa3", maxTicksLimit: 8, font: { size: 11 } }, grid: { color: "rgba(255,255,255,0.06)" } },
+            },
+        },
     });
 }
 
+/* ---------- TARGET TEMP DISPLAY ---------- */
+function setTarget(id, target) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (target && target > 0) {
+        el.textContent = ` → ${Math.round(target)}°`;
+        el.classList.add("active");
+    } else {
+        el.textContent = "";
+        el.classList.remove("active");
+    }
+}
+
+/* ---------- NOTIFICATIONS & TAB TITLE ---------- */
+const printerState = {};   // pid -> { state, progress, label }
+
+function notify(title, body) {
+    toast(title, "ok");
+    if ("Notification" in window && Notification.permission === "granted") {
+        try { new Notification(title, { body, silent: false }); } catch (e) {}
+    }
+}
+
+function updateTitle() {
+    const printing = PRINTER_IDS.map(p => printerState[p]).filter(s => s && s.state.includes("print"));
+    if (printing.length === 1) {
+        document.title = `${Math.round(printing[0].progress)}% · ${printing[0].label}`;
+    } else if (printing.length > 1) {
+        document.title = `${printing.length} printing · Dashboard`;
+    } else {
+        document.title = "Claus' 3D Printer Dashboard";
+    }
+}
+
+/* ---------- CONNECTION STATUS ---------- */
+let lastUpdate = 0;
+function setConn(cls, text) {
+    document.getElementById("conn").className = "conn " + cls;
+    document.getElementById("conn-text").textContent = text;
+}
+socket.on("connect", () => setConn("online", "Live"));
+socket.on("disconnect", () => setConn("offline", "Disconnected"));
+if (socket.io) socket.io.on("reconnect_attempt", () => setConn("connecting", "Reconnecting…"));
+setInterval(() => {
+    if (socket.connected && lastUpdate && Date.now() - lastUpdate > 8000) {
+        setConn("stale", "No data");
+    }
+}, 2000);
+
 /* ---------- SOCKET DATA ---------- */
+function updatePrinter(pid, printer, job) {
+    const status = printer?.state?.text || "Offline";
+    const state = status.toLowerCase();
+    const progress = typeof job?.progress?.completion === "number" ? job.progress.completion : 0;
+
+    printerState[pid] = { state, progress, label: PRINTERS[pid].label };
+
+    const s = document.getElementById(pid + "-status");
+    s.textContent = status;
+    s.className = "status " + stateClass(status);
+
+    const f = document.getElementById(pid + "-file");
+    if (job?.job?.file?.name) {
+        f.textContent = job.job.file.name;
+        f.style.display = "block";
+    } else {
+        f.style.display = "none";
+    }
+
+    let hotendTemp = 0;
+    let bedTemp = 0;
+
+    if (printer?.temperature?.tool0) {
+        hotendTemp = printer.temperature.tool0.actual;
+        document.getElementById(pid + "-hotend").textContent = hotendTemp.toFixed(1) + " °C";
+        setTarget(pid + "-hotend-target", printer.temperature.tool0.target);
+
+        const hist = tempHistory[pid];
+        hist.push(hotendTemp);
+        if (hist.length > 60) hist.shift();
+
+        const delta = Math.max(...hist) - Math.min(...hist);
+        const dot = document.getElementById(pid + "-temp-dot");
+        dot.className = "temp-dot";
+        if (delta < 1) dot.classList.add("temp-stable");
+        else if (delta < 4) dot.classList.add("temp-warn");
+        else dot.classList.add("temp-bad");
+    }
+
+    if (printer?.temperature?.bed) {
+        bedTemp = printer.temperature.bed.actual;
+        document.getElementById(pid + "-bed").textContent = bedTemp.toFixed(1) + " °C";
+        setTarget(pid + "-bed-target", printer.temperature.bed.target);
+    }
+
+    if (chartInstances[pid]) {
+        const chart = chartInstances[pid];
+        const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        chart.data.labels.push(now);
+        chart.data.datasets[0].data.push(hotendTemp);
+        chart.data.datasets[1].data.push(bedTemp);
+        if (chart.data.labels.length > 60) {
+            chart.data.labels.shift();
+            chart.data.datasets[0].data.shift();
+            chart.data.datasets[1].data.shift();
+        }
+        chart.update("none");
+    }
+
+    document.getElementById(pid + "-bar").style.width = progress.toFixed(1) + "%";
+
+    const p = document.getElementById(pid + "-progress");
+    if (state.includes("print") && job?.progress?.printTimeLeft) {
+        const left = job.progress.printTimeLeft;
+        const elapsed = job.progress.printTime || 0;
+        const finish = new Date(Date.now() + left * 1000).toLocaleTimeString();
+        p.textContent = `${progress.toFixed(1)}% · ${Math.floor(left / 60)}m left · ${Math.floor(elapsed / 60)}m elapsed · Finishes ${finish}`;
+    } else if (state.includes("pause")) {
+        p.textContent = `${progress.toFixed(1)}% · Paused`;
+    } else {
+        p.textContent = "";
+    }
+
+    const toggleBtn = document.getElementById(pid + "-toggle");
+    if (state.includes("print")) {
+        toggleBtn.style.display = "inline-block";
+        toggleBtn.textContent = "Pause";
+        toggleBtn.onclick = () => togglePauseResume(pid, state);
+    } else if (state.includes("pause")) {
+        toggleBtn.style.display = "inline-block";
+        toggleBtn.textContent = "Resume";
+        toggleBtn.onclick = () => togglePauseResume(pid, state);
+    } else {
+        toggleBtn.style.display = "none";
+    }
+
+    document.getElementById(pid + "-cancel").disabled =
+        !(state.includes("print") || state.includes("pause"));
+
+    applyControlLock(pid);
+}
+
 socket.on("update", d => {
+    lastUpdate = Date.now();
+    if (socket.connected) setConn("online", "Live");
 
-    /* ===== SYSTEM ===== */
     if (d.system) {
-        document.getElementById("sys-cpu").textContent =
-            d.system.cpu.toFixed(0);
-
+        document.getElementById("sys-cpu").textContent = d.system.cpu.toFixed(0);
         document.getElementById("sys-mem").textContent =
             `${d.system.mem_used}/${d.system.mem_total} GB (${d.system.mem_percent}%)`;
-
         document.getElementById("sys-disk").textContent =
             `${d.system.disk_used}/${d.system.disk_total} GB (${d.system.disk_percent}%)`;
-
         const u = d.system.uptime;
         document.getElementById("sys-up").textContent =
             `${Math.floor(u / 3600)}h ${Math.floor((u % 3600) / 60)}m`;
     }
 
-    /* ===== WEATHER ===== */
-    if (d.weather && !d.weather.error) {
-        const w = d.weather;
-        document.getElementById("w-temp").textContent = w.temp.toFixed(1);
-        document.getElementById("w-feels").textContent = w.feels.toFixed(1);
-        document.getElementById("w-hum").textContent = w.humidity;
-        document.getElementById("w-wind").textContent = w.wind.toFixed(1);
-        document.getElementById("w-clouds").textContent = w.clouds;
-        document.getElementById("w-pressure").textContent = w.pressure;
-        document.getElementById("w-vis").textContent = w.visibility.toFixed(1);
-        document.getElementById("w-aqi").textContent = w.aqi;
-        document.getElementById("w-pm25").textContent = w.pm25.toFixed(1);
-        document.getElementById("w-rain").textContent = w.rain_prob.toFixed(0);
-        document.getElementById("w-min").textContent = w.temp_min.toFixed(0);
-        document.getElementById("w-max").textContent = w.temp_max.toFixed(0);
-        document.getElementById("w-sunrise").textContent =
-            new Date(w.sunrise * 1000).toLocaleTimeString();
-        document.getElementById("w-sunset").textContent =
-            new Date(w.sunset * 1000).toLocaleTimeString();
+    if (d.printers) {
+        for (const pid of PRINTER_IDS) {
+            const entry = d.printers[pid];
+            if (entry) updatePrinter(pid, entry.printer, entry.job);
+        }
+        updateTitle();
     }
 
-    function updatePrinter(prefix, printer, job) {
-        const status = printer?.state?.text || "Offline";
-        const state = status.toLowerCase();
-        const progress =
-            typeof job?.progress?.completion === "number"
-            ? job.progress.completion
-            : 0;
-
-        const s = document.getElementById(prefix + "-status");
-        s.textContent = status;
-        s.className = "status " + stateClass(status);
-
-        const f = document.getElementById(prefix + "-file");
-        if (job?.job?.file?.name) {
-            f.textContent = job.job.file.name;
-            f.style.display = "block";
-        } else f.style.display = "none";
-
-        let hotendTemp = 0;
-        let bedTemp = 0;
-
-        if (printer?.temperature?.tool0) {
-            hotendTemp = printer.temperature.tool0.actual;
-            document.getElementById(prefix + "-hotend").textContent =
-                hotendTemp.toFixed(1) + " °C";
-
-            const hist = tempHistory[prefix];
-            hist.push(hotendTemp);
-            if (hist.length > 60) hist.shift();
-
-            const delta = Math.max(...hist) - Math.min(...hist);
-            const dot = document.getElementById(prefix + "-temp-dot");
-            dot.className = "temp-dot";
-            if (delta < 1) dot.classList.add("temp-stable");
-            else if (delta < 4) dot.classList.add("temp-warn");
-            else dot.classList.add("temp-bad");
-        }
-
-        if (printer?.temperature?.bed) {
-            bedTemp = printer.temperature.bed.actual;
-            document.getElementById(prefix + "-bed").textContent =
-                bedTemp.toFixed(1) + " °C";
-        }
-
-        /* Update temperature graph */
-        if (chartInstances[prefix]) {
-            const chart = chartInstances[prefix];
-            const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-            
-            chart.data.labels.push(now);
-            chart.data.datasets[0].data.push(hotendTemp);
-            chart.data.datasets[1].data.push(bedTemp);
-
-            if (chart.data.labels.length > 60) {
-                chart.data.labels.shift();
-                chart.data.datasets[0].data.shift();
-                chart.data.datasets[1].data.shift();
-            }
-
-            chart.update("none");
-        }
-
-        document.getElementById(prefix + "-bar").style.width =
-            progress.toFixed(1) + "%";
-
-        const p = document.getElementById(prefix + "-progress");
-
-        if (state.includes("print") && job?.progress?.printTimeLeft) {
-            const left = job.progress.printTimeLeft;
-            const elapsed = job.progress.printTime || 0;
-            const finish = new Date(Date.now() + left * 1000).toLocaleTimeString();
-
-            p.textContent =
-                `${progress.toFixed(1)}% · ${Math.floor(left / 60)}m left · ${Math.floor(elapsed / 60)}m elapsed · Finishes ${finish}`;
-        }
-        else if (state.includes("pause")) {
-            p.textContent = `${progress.toFixed(1)}% · Paused`;
-        }
-        else {
-            p.textContent = "";
-        }
-
-        const toggleBtn = document.getElementById(prefix + "-toggle");
-        if (state.includes("print")) {
-            toggleBtn.style.display = "inline-block";
-            toggleBtn.textContent = "Pause";
-            toggleBtn.onclick = () => togglePauseResume(prefix, state);
-        }
-        else if (state.includes("pause")) {
-            toggleBtn.style.display = "inline-block";
-            toggleBtn.textContent = "Resume";
-            toggleBtn.onclick = () => togglePauseResume(prefix, state);
-        }
-        else {
-            toggleBtn.style.display = "none";
-        }
-
-        document.getElementById(prefix + "-cancel").disabled =
-            !(state.includes("print") || state.includes("pause"));
+    if (d.health) {
+        renderPrinterHealth(d.health);
     }
-
-    updatePrinter("minimus", d.minimus_printer, d.minimus_job);
-    updatePrinter("sprite", d.sprite_printer, d.sprite_job);
 });
 
-/* Initialize charts on page load */
+socket.on("print_event", event => {
+    const label = event.printer_label || event.printer || "Printer";
+    const status = event.status || "updated";
+    notify(`${label}: print ${status}`, event.file_name || "Unknown file");
+    loadDashboardData();
+});
+
+socket.on("activity_event", () => {
+    loadDashboardData();
+});
+
+/* ---------- CANCEL ---------- */
+function cancelPrint(pid, label) {
+    if (confirm(`Cancel ${label} print?`)) {
+        postControl(pid, "cancel", null, `${label}: print cancelled`);
+    }
+}
+
+/* ---------- INIT ---------- */
 window.addEventListener("DOMContentLoaded", () => {
-    initTempChart("minimus");
-    initTempChart("sprite");
+    if ("Notification" in window && Notification.permission === "default") {
+        Notification.requestPermission().catch(() => {});
+    }
+
+    document.getElementById("camera-modal").addEventListener("click", event => {
+        if (event.target.id === "camera-modal") closeCameraModal();
+    });
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && !document.getElementById("camera-modal").hidden) {
+            closeCameraModal();
+        }
+    });
+
+    document.getElementById("maintenance-form").addEventListener("submit", addMaintenance);
+    loadDashboardData();
+
+    PRINTER_IDS.forEach(pid => {
+        tempHistory[pid] = [];
+        chartInstances[pid] = null;
+        initTempChart(pid);
+
+        restoreSection(`${pid}-temp`);
+        if (restoreSection(`${pid}-camera`)) refreshCameraStream(pid);
+        restoreSection(`${pid}-graph`);
+        restoreSection(`${pid}-axis`);
+    });
+
+    startCameraCheck();
 });
 </script>
-</head>
-
-<body>
-
-<header>
-    <h1>Claus' 3D Printer Dashboard</h1>
-    <div id="clock">--:--:--</div>
-
-    <div id="system-stats">
-        🧠 CPU <span id="sys-cpu">--</span>% |
-        💾 RAM <span id="sys-mem">--</span> |
-        💽 Disk <span id="sys-disk">--</span> |
-        ⏱ <span id="sys-up">--</span>
-    </div>
-</header>
-
-<div class="container">
-
-<div class="box weather-box">
-    <h2 class="collapsible" onclick="toggleWeather()">
-        Weather <span id="weather-arrow">▶</span>
-    </h2>
-    <div id="weather-content" class="weather-content">
-        <p>🌡 Temp: <span id="w-temp">--</span> °C (Feels <span id="w-feels">--</span>)</p>
-        <p>💧 Humidity: <span id="w-hum">--</span>%</p>
-        <p>🌬 Wind: <span id="w-wind">--</span> m/s</p>
-        <p>☁ Clouds: <span id="w-clouds">--</span>%</p>
-        <p>📉 Pressure: <span id="w-pressure">--</span> hPa</p>
-        <p>👁 Visibility: <span id="w-vis">--</span> km</p>
-        <hr>
-        <p>🌫 AQI: <span id="w-aqi">--</span> (PM2.5: <span id="w-pm25">--</span>)</p>
-        <hr>
-        <p>🌧 Rain chance (1h): <span id="w-rain">--</span>%</p>
-        <p>📆 Today: <span id="w-min">--</span>° / <span id="w-max">--</span>°</p>
-        <hr>
-        <p>🌅 Sunrise: <span id="w-sunrise">--</span></p>
-        <p>🌇 Sunset: <span id="w-sunset">--</span></p>
-    </div>
-</div>
-
-<div class="box">
-    <h2>Minimus</h2>
-    <p id="minimus-file" style="display:none;"></p>
-    <p>Status: <span id="minimus-status">--</span></p>
-    <p>Hotend: <span id="minimus-hotend">--</span><span id="minimus-temp-dot" class="temp-dot"></span></p>
-    <p>Bed: <span id="minimus-bed">--</span></p>
-
-    <div class="progress"><div id="minimus-bar" class="progress-fill"></div></div>
-    <p id="minimus-progress"></p>
-
-    <button id="minimus-toggle" style="display:none;">Pause</button>
-    <button id="minimus-cancel" class="cancel"
-    onclick="if (confirm('Cancel Minimus print?')) fetch('/api/control/minimus/cancel', { method: 'POST' })">
-    Cancel
-    </button>
-
-    <!-- Temperature Graph -->
-    <div class="temp-graph-header" onclick="toggleTempGraph('minimus')">
-        <span>📈 Temperature Graph</span>
-        <span id="minimus-graph-arrow" class="temp-graph-arrow">▶</span>
-    </div>
-    <div id="minimus-graph-content" class="temp-graph-content">
-        <canvas id="minimus-temp-canvas" class="temp-graph-canvas" width="300" height="250"></canvas>
-    </div>
-
-    <!-- Camera -->
-    <div class="camera-header" onclick="toggleCamera('minimus')">
-        <span>📹 Camera</span>
-        <span id="minimus-camera-arrow" class="camera-arrow">▶</span>
-    </div>
-    <div id="minimus-camera-content" class="camera-content">
-        <div class="camera">
-            <img src="http://192.168.2.51/cam_Ender3minimus/?action=stream">
-        </div>
-    </div>
-
-    <!-- Axis Controller -->
-    <div class="axis-header" onclick="toggleAxisController('minimus')">
-        <span>🎮 Axis Control</span>
-        <span id="minimus-axis-arrow" class="axis-arrow">▶</span>
-    </div>
-    <div id="minimus-axis-content" class="axis-content">
-        <div class="axis-controls">
-            <label>Distance (mm): <input type="number" id="minimus-move-distance" value="10" min="0.1" max="50" step="0.1"></label>
-            
-            <div class="axis-section">
-                <h4>X Axis</h4>
-                <button onclick="moveAxis('minimus', 'x', -1)">◄ X-</button>
-                <button onclick="homeAxis('minimus', 'x')">🏠 Home X</button>
-                <button onclick="moveAxis('minimus', 'x', 1)">X+ ►</button>
-            </div>
-
-            <div class="axis-section">
-                <h4>Y Axis</h4>
-                <button onclick="moveAxis('minimus', 'y', -1)">◄ Y-</button>
-                <button onclick="homeAxis('minimus', 'y')">🏠 Home Y</button>
-                <button onclick="moveAxis('minimus', 'y', 1)">Y+ ►</button>
-            </div>
-
-            <div class="axis-section">
-                <h4>Z Axis</h4>
-                <button onclick="moveAxis('minimus', 'z', -1)">▼ Z-</button>
-                <button onclick="homeAxis('minimus', 'z')">🏠 Home Z</button>
-                <button onclick="moveAxis('minimus', 'z', 1)">Z+ ▲</button>
-            </div>
-
-            <button class="home-all" onclick="homeAll('minimus')">🏠 Home All</button>
-        </div>
-    </div>
-</div>
-
-<div class="box">
-    <h2>Sprite</h2>
-    <p id="sprite-file" style="display:none;"></p>
-    <p>Status: <span id="sprite-status">--</span></p>
-    <p>Hotend: <span id="sprite-hotend">--</span><span id="sprite-temp-dot" class="temp-dot"></span></p>
-    <p>Bed: <span id="sprite-bed">--</span></p>
-
-    <div class="progress"><div id="sprite-bar" class="progress-fill"></div></div>
-    <p id="sprite-progress"></p>
-
-    <button id="sprite-toggle" style="display:none;">Pause</button>
-    <button id="sprite-cancel" class="cancel"
-    onclick="if (confirm('Cancel Sprite print?')) fetch('/api/control/sprite/cancel', { method: 'POST' })">
-    Cancel
-    </button>
-
-    <!-- Temperature Graph -->
-    <div class="temp-graph-header" onclick="toggleTempGraph('sprite')">
-        <span>📈 Temperature Graph</span>
-        <span id="sprite-graph-arrow" class="temp-graph-arrow">▶</span>
-    </div>
-    <div id="sprite-graph-content" class="temp-graph-content">
-        <canvas id="sprite-temp-canvas" class="temp-graph-canvas" width="300" height="250"></canvas>
-    </div>
-
-    <!-- Camera -->
-    <div class="camera-header" onclick="toggleCamera('sprite')">
-        <span>📹 Camera</span>
-        <span id="sprite-camera-arrow" class="camera-arrow">▶</span>
-    </div>
-    <div id="sprite-camera-content" class="camera-content">
-        <div class="camera">
-            <img src="http://192.168.2.51/cam_Ender3Sprite/?action=stream">
-        </div>
-    </div>
-
-    <!-- Axis Controller -->
-    <div class="axis-header" onclick="toggleAxisController('sprite')">
-        <span>🎮 Axis Control</span>
-        <span id="sprite-axis-arrow" class="axis-arrow">▶</span>
-    </div>
-    <div id="sprite-axis-content" class="axis-content">
-        <div class="axis-controls">
-            <label>Distance (mm): <input type="number" id="sprite-move-distance" value="10" min="0.1" max="50" step="0.1"></label>
-            
-            <div class="axis-section">
-                <h4>X Axis</h4>
-                <button onclick="moveAxis('sprite', 'x', -1)">◄ X-</button>
-                <button onclick="homeAxis('sprite', 'x')">🏠 Home X</button>
-                <button onclick="moveAxis('sprite', 'x', 1)">X+ ►</button>
-            </div>
-
-            <div class="axis-section">
-                <h4>Y Axis</h4>
-                <button onclick="moveAxis('sprite', 'y', -1)">◄ Y-</button>
-                <button onclick="homeAxis('sprite', 'y')">🏠 Home Y</button>
-                <button onclick="moveAxis('sprite', 'y', 1)">Y+ ►</button>
-            </div>
-
-            <div class="axis-section">
-                <h4>Z Axis</h4>
-                <button onclick="moveAxis('sprite', 'z', -1)">▼ Z-</button>
-                <button onclick="homeAxis('sprite', 'z')">🏠 Home Z</button>
-                <button onclick="moveAxis('sprite', 'z', 1)">Z+ ▲</button>
-            </div>
-
-            <button class="home-all" onclick="homeAll('sprite')">🏠 Home All</button>
-        </div>
-    </div>
-</div>
-
-</div>
 </body>
 </html>
