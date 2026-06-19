@@ -57,6 +57,7 @@ PRINT_TRACKER = {}
 PRINTER_HEALTH = {}
 HISTORY_LIMIT = 200
 ACTIVITY_LIMIT = 300
+ACTIVITY_SEVERITIES = {"ok", "info", "warn", "danger"}
 
 
 def _now_iso():
@@ -919,6 +920,64 @@ def set_printer_lock(printer):
         "warn" if saved else "ok",
     )
     return jsonify({"ok": True, "printer": printer, "locked": saved})
+
+
+@app.route("/api/activity/<entry_id>", methods=["POST"])
+def update_activity(entry_id):
+    try:
+        data = _json_object()
+        action = _clean_text(data.get("action"), 80)
+        detail = _clean_text(data.get("detail"), 240)
+        severity = _clean_text(data.get("severity"), 16) or "info"
+        printer = _clean_text(data.get("printer"), 40)
+
+        if not action:
+            raise ValueError("activity title is required")
+        if severity not in ACTIVITY_SEVERITIES:
+            raise ValueError("severity must be info, ok, warn, or danger")
+        if printer and printer not in PRINTERS:
+            raise ValueError("bad printer")
+    except ValueError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+
+    def edit_entry(store):
+        for entry in store["activity"]:
+            if entry.get("id") == entry_id:
+                entry.update(
+                    {
+                        "action": action,
+                        "printer": printer,
+                        "printer_label": PRINTERS.get(printer, {}).get("label", "") if printer else "",
+                        "detail": detail,
+                        "severity": severity,
+                        "edited_at": _now_iso(),
+                    }
+                )
+                return entry
+        return None
+
+    saved = _update_data(edit_entry)
+    if not saved:
+        return jsonify({"ok": False, "error": "activity entry not found"}), 404
+
+    socketio.emit("activity_event", saved)
+    return jsonify({"ok": True, "activity": saved})
+
+
+@app.route("/api/activity/<entry_id>/delete", methods=["POST"])
+def delete_activity(entry_id):
+    def remove_entry(store):
+        for index, entry in enumerate(store["activity"]):
+            if entry.get("id") == entry_id:
+                return store["activity"].pop(index)
+        return None
+
+    deleted = _update_data(remove_entry)
+    if not deleted:
+        return jsonify({"ok": False, "error": "activity entry not found"}), 404
+
+    socketio.emit("activity_event", {"id": entry_id, "deleted": True})
+    return jsonify({"ok": True, "deleted": deleted})
 
 
 @app.route("/api/filament/<printer>", methods=["POST"])

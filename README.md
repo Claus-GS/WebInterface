@@ -145,6 +145,8 @@ Dashboard data endpoints:
 - `GET /api/history/export.csv`
 - `GET /api/camera/<printer>/snapshot`
 - `POST /api/filament/<printer>`
+- `POST /api/activity/<entry_id>`
+- `POST /api/activity/<entry_id>/delete`
 - `POST /api/maintenance`
 - `POST /api/maintenance/<entry_id>/complete`
 

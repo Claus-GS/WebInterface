@@ -682,7 +682,28 @@ body {
 .pill-cancelled { color: var(--amber); background: rgba(251,191,36,0.12); border-color: rgba(251,191,36,0.3); }
 .pill-failed { color: var(--red); background: rgba(248,113,113,0.12); border-color: rgba(248,113,113,0.3); }
 .activity-row {
-    grid-template-columns: minmax(220px, 1fr) 100px 140px;
+    grid-template-columns: minmax(220px, 1fr) 100px 140px auto;
+}
+.row-actions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+}
+.row-actions .icon-btn {
+    flex: 0 0 30px;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+}
+.row-actions .icon-btn .ic {
+    width: 15px;
+    height: 15px;
+}
+.danger-icon:hover {
+    color: var(--red);
+    border-color: rgba(248,113,113,0.45);
+    background: rgba(248,113,113,0.12);
 }
 .filament-grid {
     display: grid;
@@ -694,6 +715,11 @@ body {
     border: 1px solid var(--stroke-soft);
     border-radius: var(--radius-sm);
     background: rgba(0,0,0,0.16);
+}
+.filament-panel.focus-flash {
+    border-color: rgba(91,141,239,0.85);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .panel-head {
     display: flex;
