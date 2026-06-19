@@ -546,7 +546,7 @@ def _mark_emergency_requested(pid):
                 "duration_s": int(time.time() - current.get("started_ts", time.time())),
                 "progress": round(current.get("last_progress", 0.0), 1),
                 "filament_used_mm": round(current.get("filament_used_mm", 0), 1),
-                "note": "Emergency stop sent",
+                "note": "Firmware emergency stop sent",
             }
             del PRINT_TRACKER[pid]
         else:
@@ -1032,8 +1032,8 @@ def control(printer, url, headers, action):
         label = PRINTERS[printer]["label"]
         try:
             data = _json_object()
-            if data.get("confirm") != f"STOP {label}":
-                raise ValueError(f'type "STOP {label}" to confirm')
+            if data.get("confirm") != f"M112 {label}":
+                raise ValueError(f'type "M112 {label}" to confirm firmware emergency stop')
         except ValueError as exc:
             return jsonify({"ok": False, "error": str(exc)}), 400
 

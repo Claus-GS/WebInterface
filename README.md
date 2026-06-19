@@ -7,8 +7,8 @@ A local web dashboard for monitoring and controlling multiple OctoPrint-backed 3
 - Real-time printer state, job, progress, hotend temperature, and bed temperature.
 - Authenticated browser dashboard with server-side sessions.
 - CSRF protection on all state-changing dashboard actions.
-- Pause, resume, cancel, jog, home, temperature, extrude, and retract controls.
-- Guarded emergency stop and server-side control lock per printer.
+- Pause, resume, cancel print, jog, home, temperature, extrude, and retract controls.
+- Guarded firmware M112 emergency stop and server-side control lock per printer.
 - Print history for finished, cancelled, failed, and emergency-stopped jobs.
 - CSV export for print history and JSON export for all dashboard records.
 - Recent activity log for dashboard actions and printer controls.
@@ -173,9 +173,11 @@ Emergency stop requires a typed confirmation:
 
 ```json
 {
-  "confirm": "STOP Minimus"
+  "confirm": "M112 Minimus"
 }
 ```
+
+`cancel` asks OctoPrint to cancel the current print job normally. `emergency` sends firmware `M112`, records the job as failed, and locks controls for that printer.
 
 ## Notifications
 

@@ -117,9 +117,10 @@
 
         <div class="btn-row">
             <button id="{{ pid }}-toggle" class="btn btn-primary" style="display:none;">Pause</button>
-            <button id="{{ pid }}-cancel" class="btn btn-danger"
+            <button id="{{ pid }}-cancel" class="btn btn-warn"
+                title="Ask OctoPrint to cancel the current print job"
                 onclick="cancelPrint('{{ pid }}', '{{ p.label }}')">
-                Cancel
+                Cancel Print
             </button>
         </div>
 
@@ -127,8 +128,10 @@
             <button id="{{ pid }}-lock" class="btn btn-ghost lock-toggle" onclick="toggleControlLock('{{ pid }}')">
                 {{ ic('lock') }} Lock controls
             </button>
-            <button class="btn btn-emergency emergency-action" onclick="emergencyStop('{{ pid }}', '{{ p.label }}')">
-                {{ ic('stop') }} Emergency stop
+            <button class="btn btn-emergency emergency-action"
+                title="Send firmware M112 emergency stop and lock controls"
+                onclick="emergencyStop('{{ pid }}', '{{ p.label }}')">
+                {{ ic('stop') }} Machine E-Stop
             </button>
         </div>
 
@@ -871,13 +874,13 @@ async function toggleControlLock(pid) {
 }
 
 async function emergencyStop(pid, label) {
-    const expected = `STOP ${label}`;
-    const typed = prompt(`Type ${expected} to emergency stop ${label}.`);
+    const expected = `M112 ${label}`;
+    const typed = prompt(`Type ${expected} to send a firmware emergency stop to ${label}.`);
     if (typed !== expected) {
-        toast("Emergency stop cancelled", "err");
+        toast("Emergency stop not sent", "err");
         return;
     }
-    const ok = await postControl(pid, "emergency", { confirm: expected }, `${label}: emergency stop sent`);
+    const ok = await postControl(pid, "emergency", { confirm: expected }, `${label}: firmware M112 emergency stop sent`);
     if (ok) {
         controlLocks[pid] = true;
         applyControlLock(pid);
@@ -1189,10 +1192,10 @@ socket.on("activity_event", () => {
     loadDashboardData();
 });
 
-/* ---------- CANCEL ---------- */
+/* ---------- PRINT CANCEL ---------- */
 function cancelPrint(pid, label) {
-    if (confirm(`Cancel ${label} print?`)) {
-        postControl(pid, "cancel", null, `${label}: print cancelled`);
+    if (confirm(`Send normal OctoPrint cancel command for ${label}?`)) {
+        postControl(pid, "cancel", null, `${label}: print cancel command sent`);
     }
 }
 

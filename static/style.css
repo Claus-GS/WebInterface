@@ -589,8 +589,10 @@ body {
     margin: 10px 0 4px;
 }
 .btn-emergency {
-    background: linear-gradient(135deg, #991b1b, #dc2626);
-    box-shadow: 0 4px 18px rgba(220,38,38,0.28);
+    background: linear-gradient(135deg, #111827 0%, #111827 42%, #dc2626 42%, #991b1b 100%);
+    border-color: rgba(248,113,113,0.55);
+    box-shadow: 0 0 0 2px rgba(248,113,113,0.18), 0 4px 18px rgba(220,38,38,0.28);
+    font-weight: 800;
 }
 .lock-toggle.locked {
     color: var(--amber);
