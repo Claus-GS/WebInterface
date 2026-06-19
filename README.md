@@ -11,6 +11,8 @@ A local web dashboard for monitoring and controlling multiple OctoPrint-backed 3
 - Guarded firmware M112 emergency stop and server-side control lock per printer.
 - Print history for finished, cancelled, failed, and emergency-stopped jobs.
 - Editable print history, maintenance entries, and recent activity entries.
+- Action Center for offline printers, locked controls, low filament, due maintenance, and failed prints.
+- Search and filter controls for print history, maintenance, and recent activity.
 - CSV export for print history and JSON export for all dashboard records.
 - Recent activity log for dashboard actions and printer controls.
 - Filament tracking with brand, material, color, remaining grams, and cost.

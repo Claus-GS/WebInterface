@@ -223,6 +223,14 @@
     </section>
     {% endfor %}
 
+    <section class="card ops-card wide-card attention-card">
+        <div class="card-head">
+            <h2>{{ ic('bell') }} Action Center</h2>
+            <span id="attention-count" class="status state-idle">0 items</span>
+        </div>
+        <div id="attention-list" class="attention-list empty-list">No urgent items right now.</div>
+    </section>
+
     <section class="card ops-card wide-card">
         <div class="card-head">
             <h2>{{ ic('history') }} Print History</h2>
@@ -239,6 +247,27 @@
             <div class="metric bad"><span>Failed</span><b id="hist-failed">0</b></div>
             <div class="metric"><span>Filament</span><b id="hist-filament">0g</b></div>
             <div class="metric"><span>Material Cost</span><b id="hist-cost">$0.00</b></div>
+        </div>
+        <div class="filter-bar">
+            <label>Search<input id="history-search" type="search" placeholder="File, material, note"></label>
+            <label>Status
+                <select id="history-status">
+                    <option value="">All statuses</option>
+                    <option value="finished">Finished</option>
+                    <option value="cancelled">Cancelled</option>
+                    <option value="failed">Failed</option>
+                </select>
+            </label>
+            <label>Printer
+                <select id="history-printer">
+                    <option value="">All printers</option>
+                    {% for pid, p in printers.items() %}
+                    <option value="{{ pid }}">{{ p.label }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <button class="btn btn-ghost small-action" onclick="resetHistoryFilters()">Reset</button>
+            <span id="history-filter-count" class="filter-count">0 shown</span>
         </div>
         <div id="history-list" class="data-list empty-list">No print history yet.</div>
     </section>
@@ -292,7 +321,32 @@
                 <label class="wide-label">Notes<input id="maint-notes" type="text" maxlength="300"></label>
                 <button class="btn btn-primary" type="submit">{{ ic('plus') }} Add entry</button>
             </form>
-            <div id="maintenance-list" class="data-list empty-list">No maintenance entries yet.</div>
+            <div class="records-column">
+                <div class="filter-bar compact-filter">
+                    <label>Search<input id="maintenance-search" type="search" placeholder="Task or notes"></label>
+                    <label>Status
+                        <select id="maintenance-status">
+                            <option value="">All</option>
+                            <option value="open">Open</option>
+                            <option value="overdue">Overdue</option>
+                            <option value="soon">Due soon</option>
+                            <option value="done">Done</option>
+                        </select>
+                    </label>
+                    <label>Printer
+                        <select id="maintenance-printer">
+                            <option value="">All printers</option>
+                            <option value="all">Shared</option>
+                            {% for pid, p in printers.items() %}
+                            <option value="{{ pid }}">{{ p.label }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <button class="btn btn-ghost small-action" onclick="resetMaintenanceFilters()">Reset</button>
+                    <span id="maintenance-filter-count" class="filter-count">0 shown</span>
+                </div>
+                <div id="maintenance-list" class="data-list empty-list">No maintenance entries yet.</div>
+            </div>
         </div>
     </section>
 
@@ -307,6 +361,29 @@
     <section class="card ops-card wide-card">
         <div class="card-head">
             <h2>{{ ic('clock') }} Recent Activity</h2>
+        </div>
+        <div class="filter-bar">
+            <label>Search<input id="activity-search" type="search" placeholder="Action or detail"></label>
+            <label>Severity
+                <select id="activity-severity">
+                    <option value="">All</option>
+                    <option value="info">Info</option>
+                    <option value="ok">OK</option>
+                    <option value="warn">Warn</option>
+                    <option value="danger">Danger</option>
+                </select>
+            </label>
+            <label>Printer
+                <select id="activity-printer">
+                    <option value="">All sources</option>
+                    <option value="dashboard">Dashboard</option>
+                    {% for pid, p in printers.items() %}
+                    <option value="{{ pid }}">{{ p.label }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <button class="btn btn-ghost small-action" onclick="resetActivityFilters()">Reset</button>
+            <span id="activity-filter-count" class="filter-count">0 shown</span>
         </div>
         <div id="activity-list" class="data-list empty-list">No activity yet.</div>
     </section>
@@ -569,6 +646,7 @@ async function loadDashboardData() {
         if (!res.ok || data.ok === false) throw new Error(data.error || "Failed to load dashboard data");
         dashboardData = data;
         controlLocks = data.control_locks || {};
+        renderActionCenter(data);
         renderHistory(data.history || [], data.history_stats || {});
         renderActivity(data.activity || []);
         renderFilament(data.filament || {});
@@ -596,6 +674,193 @@ function formatDate(value) {
     return d.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
+function filterValue(id) {
+    return (document.getElementById(id)?.value || "").trim();
+}
+
+function normalizedText(value) {
+    return String(value ?? "").toLowerCase();
+}
+
+function matchesText(query, parts) {
+    if (!query) return true;
+    const haystack = parts.map(normalizedText).join(" ");
+    return normalizedText(query).split(/\s+/).every(token => haystack.includes(token));
+}
+
+function setFilterCount(id, shown, total) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = `${shown}/${total} shown`;
+}
+
+function dateOnly(value) {
+    if (!value) return null;
+    const parsed = new Date(`${value}T00:00:00`);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function daysUntil(value) {
+    const due = dateOnly(value);
+    if (!due) return null;
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return Math.ceil((due - today) / 86400000);
+}
+
+function maintenanceState(entry) {
+    if (entry.completed_at) return "done";
+    const days = daysUntil(entry.due_date);
+    if (days === null) return "open";
+    if (days < 0) return "overdue";
+    if (days <= 7) return "soon";
+    return "open";
+}
+
+function jumpToTarget(kind, id) {
+    if (kind === "printer") {
+        document.querySelector(`.printer-card[data-printer="${id}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+    }
+    if (kind === "filament") {
+        openFilamentEntry(id);
+        return;
+    }
+    const targets = {
+        history: "#history-list",
+        maintenance: "#maintenance-list",
+        activity: "#activity-list",
+    };
+    document.querySelector(targets[kind] || ".container")?.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function attentionRow(severity, title, detail, kind, id) {
+    return `
+        <div class="attention-item ${severity}">
+            <div class="row-main">
+                <strong>${escapeHtml(title)}</strong>
+                <span>${escapeHtml(detail || "")}</span>
+            </div>
+            <button class="btn btn-ghost compact-btn" data-jump-kind="${escapeHtml(kind)}" data-jump-id="${escapeHtml(id || "")}">Open</button>
+        </div>
+    `;
+}
+
+function renderActionCenter(data) {
+    const items = [];
+    const health = data.health || {};
+    const locks = data.control_locks || {};
+    const filament = data.filament || {};
+    const maintenance = data.maintenance || [];
+    const history = data.history || [];
+
+    PRINTER_IDS.forEach(pid => {
+        const label = PRINTERS[pid].label;
+        const info = health[pid] || {};
+        if (info.configured === false) {
+            items.push(["warn", `${label} not configured`, "Missing API key or printer config.", "printer", pid]);
+        } else if (info.online === false) {
+            items.push(["danger", `${label} offline`, info.last_error || "No recent successful OctoPrint response.", "printer", pid]);
+        }
+        if (locks[pid]) {
+            items.push(["warn", `${label} controls locked`, "Unlock only after the printer is safe to control.", "printer", pid]);
+        }
+
+        const spool = filament[pid] || {};
+        const left = Number(spool.remaining_g) || 0;
+        const threshold = Number(spool.low_threshold_g) || 0;
+        if (threshold > 0 && left <= threshold) {
+            const desc = `${left.toFixed(0)}g left${spool.material ? ` - ${spool.material}` : ""}${spool.color ? ` ${spool.color}` : ""}`;
+            items.push(["warn", `${label} filament low`, desc, "filament", pid]);
+        }
+    });
+
+    maintenance.filter(entry => !entry.completed_at).forEach(entry => {
+        const state = maintenanceState(entry);
+        if (state === "overdue" || state === "soon") {
+            const days = daysUntil(entry.due_date);
+            const due = state === "overdue" ? `${Math.abs(days)} day(s) overdue` : `due in ${days} day(s)`;
+            items.push([state === "overdue" ? "danger" : "warn", entry.task || "Maintenance due", `${entry.printer_label || "Dashboard"} - ${due}`, "maintenance", entry.id]);
+        }
+    });
+
+    history.filter(item => item.status === "failed").slice(0, 3).forEach(item => {
+        items.push(["danger", "Failed print recorded", `${item.printer_label || item.printer || "Printer"} - ${item.file_name || "Unknown file"}`, "history", item.id]);
+    });
+
+    const list = document.getElementById("attention-list");
+    const count = document.getElementById("attention-count");
+    count.textContent = `${items.length} item${items.length === 1 ? "" : "s"}`;
+    count.className = `status ${items.some(item => item[0] === "danger") ? "state-error" : items.length ? "state-paused" : "state-idle"}`;
+
+    if (!items.length) {
+        list.className = "attention-list empty-list";
+        list.textContent = "No urgent items right now.";
+        return;
+    }
+
+    list.className = "attention-list";
+    list.innerHTML = items.slice(0, 12).map(item => attentionRow(...item)).join("");
+}
+
+function filterHistory(history) {
+    const query = filterValue("history-search");
+    const status = filterValue("history-status");
+    const printer = filterValue("history-printer");
+    return history.filter(item => {
+        if (status && item.status !== status) return false;
+        if (printer && item.printer !== printer) return false;
+        return matchesText(query, [item.file_name, item.printer_label, item.printer, item.filament_material, item.note, item.status]);
+    });
+}
+
+function filterActivity(activity) {
+    const query = filterValue("activity-search");
+    const severity = filterValue("activity-severity");
+    const printer = filterValue("activity-printer");
+    return activity.filter(item => {
+        if (severity && item.severity !== severity) return false;
+        if (printer === "dashboard" && item.printer) return false;
+        if (printer && printer !== "dashboard" && item.printer !== printer) return false;
+        return matchesText(query, [item.action, item.detail, item.printer_label, item.severity]);
+    });
+}
+
+function filterMaintenance(entries) {
+    const query = filterValue("maintenance-search");
+    const status = filterValue("maintenance-status");
+    const printer = filterValue("maintenance-printer");
+    return entries.filter(entry => {
+        const state = maintenanceState(entry);
+        if (status === "open" && state === "done") return false;
+        if (status && status !== "open" && state !== status) return false;
+        if (printer && entry.printer !== printer) return false;
+        return matchesText(query, [entry.task, entry.notes, entry.printer_label, entry.due_date]);
+    });
+}
+
+function resetHistoryFilters() {
+    ["history-search", "history-status", "history-printer"].forEach(id => setInput(id, ""));
+    if (dashboardData) renderHistory(dashboardData.history || [], dashboardData.history_stats || {});
+}
+
+function resetActivityFilters() {
+    ["activity-search", "activity-severity", "activity-printer"].forEach(id => setInput(id, ""));
+    if (dashboardData) renderActivity(dashboardData.activity || []);
+}
+
+function resetMaintenanceFilters() {
+    ["maintenance-search", "maintenance-status", "maintenance-printer"].forEach(id => setInput(id, ""));
+    if (dashboardData) renderMaintenance(dashboardData.maintenance || []);
+}
+
+function bindFilter(id, renderFn) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener(el.tagName === "SELECT" ? "change" : "input", () => {
+        if (dashboardData) renderFn();
+    });
+}
+
 function renderHistory(history, stats) {
     document.getElementById("hist-total").textContent = stats.total || 0;
     document.getElementById("hist-finished").textContent = stats.finished || 0;
@@ -607,14 +872,22 @@ function renderHistory(history, stats) {
     document.getElementById("history-success").textContent = `${success}% success`;
 
     const list = document.getElementById("history-list");
+    const filtered = filterHistory(history);
+    setFilterCount("history-filter-count", filtered.length, history.length);
+
     if (!history.length) {
         list.className = "data-list empty-list";
         list.textContent = "No print history yet.";
         return;
     }
+    if (!filtered.length) {
+        list.className = "data-list empty-list";
+        list.textContent = "No matching print history.";
+        return;
+    }
 
     list.className = "data-list";
-    list.innerHTML = history.slice(0, 12).map(item => {
+    list.innerHTML = filtered.slice(0, 12).map(item => {
         const status = item.status || "finished";
         const statusClass = ["finished", "cancelled", "failed"].includes(status) ? status : "info";
         const id = escapeHtml(item.id || "");
@@ -641,9 +914,16 @@ function renderHistory(history, stats) {
 
 function renderActivity(activity) {
     const list = document.getElementById("activity-list");
+    const filtered = filterActivity(activity);
+    setFilterCount("activity-filter-count", filtered.length, activity.length);
     if (!activity.length) {
         list.className = "data-list empty-list";
         list.textContent = "No activity yet.";
+        return;
+    }
+    if (!filtered.length) {
+        list.className = "data-list empty-list";
+        list.textContent = "No matching activity.";
         return;
     }
 
@@ -655,7 +935,7 @@ function renderActivity(activity) {
     };
 
     list.className = "data-list";
-    list.innerHTML = activity.slice(0, 16).map(item => {
+    list.innerHTML = filtered.slice(0, 16).map(item => {
         const severity = item.severity || "info";
         const id = escapeHtml(item.id || "");
         const printer = escapeHtml(item.printer || "");
@@ -715,14 +995,21 @@ function renderFilament(filament) {
 
 function renderMaintenance(entries) {
     const list = document.getElementById("maintenance-list");
+    const filtered = filterMaintenance(entries);
+    setFilterCount("maintenance-filter-count", filtered.length, entries.length);
     if (!entries.length) {
         list.className = "data-list empty-list";
         list.textContent = "No maintenance entries yet.";
         return;
     }
+    if (!filtered.length) {
+        list.className = "data-list empty-list";
+        list.textContent = "No matching maintenance entries.";
+        return;
+    }
 
     list.className = "data-list";
-    list.innerHTML = entries.slice(0, 16).map(entry => {
+    list.innerHTML = filtered.slice(0, 16).map(entry => {
         const done = Boolean(entry.completed_at);
         const id = escapeHtml(entry.id || "");
         const dueText = entry.due_date ? `Due ${escapeHtml(entry.due_date)}` : "No due date";
@@ -1456,6 +1743,15 @@ window.addEventListener("DOMContentLoaded", () => {
     });
 
     document.getElementById("maintenance-form").addEventListener("submit", addMaintenance);
+    bindFilter("history-search", () => renderHistory(dashboardData.history || [], dashboardData.history_stats || {}));
+    bindFilter("history-status", () => renderHistory(dashboardData.history || [], dashboardData.history_stats || {}));
+    bindFilter("history-printer", () => renderHistory(dashboardData.history || [], dashboardData.history_stats || {}));
+    bindFilter("activity-search", () => renderActivity(dashboardData.activity || []));
+    bindFilter("activity-severity", () => renderActivity(dashboardData.activity || []));
+    bindFilter("activity-printer", () => renderActivity(dashboardData.activity || []));
+    bindFilter("maintenance-search", () => renderMaintenance(dashboardData.maintenance || []));
+    bindFilter("maintenance-status", () => renderMaintenance(dashboardData.maintenance || []));
+    bindFilter("maintenance-printer", () => renderMaintenance(dashboardData.maintenance || []));
     document.getElementById("edit-form").addEventListener("submit", async event => {
         event.preventDefault();
         if (!activeEdit) return;
@@ -1505,6 +1801,11 @@ window.addEventListener("DOMContentLoaded", () => {
         } else if (action === "delete") {
             deleteActivityEntry(button.dataset.id || "");
         }
+    });
+    document.getElementById("attention-list").addEventListener("click", event => {
+        const button = event.target.closest("[data-jump-kind]");
+        if (!button) return;
+        jumpToTarget(button.dataset.jumpKind || "", button.dataset.jumpId || "");
     });
     loadDashboardData();
 

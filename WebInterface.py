@@ -1,4 +1,5 @@
 import csv
+import hashlib
 import io
 import json
 import math
@@ -91,17 +92,23 @@ def _empty_data():
     }
 
 
-def _normalize_records(items, limit=None):
+def _stable_record_id(prefix, index, item):
+    payload = json.dumps(item, sort_keys=True, default=str)
+    digest = hashlib.sha1(f"{prefix}:{index}:{payload}".encode("utf-8")).hexdigest()[:16]
+    return f"{prefix}-{digest}"
+
+
+def _normalize_records(items, limit=None, prefix="record"):
     if not isinstance(items, list):
         return []
 
     records = []
-    for item in items[:limit]:
+    for index, item in enumerate(items[:limit]):
         if not isinstance(item, dict):
             continue
         record = dict(item)
         if not record.get("id"):
-            record["id"] = uuid.uuid4().hex
+            record["id"] = _stable_record_id(prefix, index, record)
         records.append(record)
     return records
 
@@ -114,11 +121,11 @@ def _normalize_data(data):
 
     history = data.get("history", [])
     if isinstance(history, list):
-        normalized["history"] = _normalize_records(history, HISTORY_LIMIT)
+        normalized["history"] = _normalize_records(history, HISTORY_LIMIT, "history")
 
     activity = data.get("activity", [])
     if isinstance(activity, list):
-        normalized["activity"] = _normalize_records(activity, ACTIVITY_LIMIT)
+        normalized["activity"] = _normalize_records(activity, ACTIVITY_LIMIT, "activity")
 
     filament = data.get("filament", {})
     if isinstance(filament, dict):
@@ -131,7 +138,7 @@ def _normalize_data(data):
 
     maintenance = data.get("maintenance", [])
     if isinstance(maintenance, list):
-        normalized["maintenance"] = _normalize_records(maintenance)
+        normalized["maintenance"] = _normalize_records(maintenance, prefix="maintenance")
 
     locks = data.get("control_locks", {})
     if isinstance(locks, dict):
