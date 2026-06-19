@@ -10,6 +10,7 @@ A local web dashboard for monitoring and controlling multiple OctoPrint-backed 3
 - Pause, resume, cancel print, jog, home, temperature, extrude, and retract controls.
 - Guarded firmware M112 emergency stop and server-side control lock per printer.
 - Print history for finished, cancelled, failed, and emergency-stopped jobs.
+- Editable print history, maintenance entries, and recent activity entries.
 - CSV export for print history and JSON export for all dashboard records.
 - Recent activity log for dashboard actions and printer controls.
 - Filament tracking with brand, material, color, remaining grams, and cost.
@@ -143,11 +144,15 @@ Dashboard data endpoints:
 - `GET /api/dashboard-data`
 - `GET /api/dashboard-data/export`
 - `GET /api/history/export.csv`
+- `POST /api/history/<entry_id>`
+- `POST /api/history/<entry_id>/delete`
 - `GET /api/camera/<printer>/snapshot`
 - `POST /api/filament/<printer>`
 - `POST /api/activity/<entry_id>`
 - `POST /api/activity/<entry_id>/delete`
 - `POST /api/maintenance`
+- `POST /api/maintenance/<entry_id>`
+- `POST /api/maintenance/<entry_id>/delete`
 - `POST /api/maintenance/<entry_id>/complete`
 
 Example request body for jog:

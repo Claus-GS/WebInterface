@@ -1,5 +1,5 @@
 /* ============================================================
-   Claus' 3D Printer Dashboard — Modern Dark Glass theme
+   Claus' 3D Printer Dashboard - Modern Dark Glass theme
    ============================================================ */
 
 :root {
@@ -461,6 +461,76 @@ body {
     min-height: 0;
 }
 .modal-open { overflow: hidden; }
+.edit-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 320;
+    display: grid;
+    place-items: center;
+    padding: 18px;
+    background: rgba(3, 6, 14, 0.74);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+.edit-modal[hidden] { display: none; }
+.edit-dialog {
+    width: min(680px, 100%);
+    max-height: min(760px, calc(100vh - 36px));
+    overflow: auto;
+    padding: 18px;
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-sm);
+    background: rgba(16, 22, 38, 0.98);
+    box-shadow: var(--shadow);
+}
+.edit-head,
+.edit-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+.edit-head {
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--stroke-soft);
+    margin-bottom: 14px;
+}
+.edit-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+    gap: 12px;
+}
+.edit-fields label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: var(--text-faint);
+    font-size: 0.74rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.edit-fields input,
+.edit-fields select {
+    min-width: 0;
+    width: 100%;
+    padding: 10px 11px;
+    color: var(--text);
+    background: rgba(0,0,0,0.32);
+    border: 1px solid var(--stroke);
+    border-radius: 8px;
+    font: inherit;
+}
+.edit-fields input:focus,
+.edit-fields select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.edit-actions {
+    justify-content: flex-end;
+    margin-top: 16px;
+}
 
 /* ---------------- TEMP GRAPH ---------------- */
 .temp-graph-canvas {
@@ -681,6 +751,9 @@ body {
 .pill-info { color: var(--accent); background: rgba(91,141,239,0.12); border-color: rgba(91,141,239,0.3); }
 .pill-cancelled { color: var(--amber); background: rgba(251,191,36,0.12); border-color: rgba(251,191,36,0.3); }
 .pill-failed { color: var(--red); background: rgba(248,113,113,0.12); border-color: rgba(248,113,113,0.3); }
+.history-row {
+    grid-template-columns: minmax(220px, 1fr) 120px 90px 140px auto;
+}
 .activity-row {
     grid-template-columns: minmax(220px, 1fr) 100px 140px auto;
 }
@@ -704,6 +777,12 @@ body {
     color: var(--red);
     border-color: rgba(248,113,113,0.45);
     background: rgba(248,113,113,0.12);
+}
+.compact-btn {
+    flex: 0 0 auto;
+    min-width: 68px;
+    padding: 8px 10px;
+    font-size: 0.78rem;
 }
 .filament-grid {
     display: grid;
@@ -812,7 +891,7 @@ body {
     grid-column: 1 / -1;
 }
 .maintenance-row {
-    grid-template-columns: minmax(160px, 1fr) 120px 110px;
+    grid-template-columns: minmax(160px, 1fr) 120px auto;
 }
 .maintenance-row.done {
     opacity: 0.58;
@@ -885,9 +964,11 @@ body {
         grid-template-columns: 1fr;
         gap: 6px;
     }
+    .row-actions { justify-content: flex-start; flex-wrap: wrap; }
     .maintenance-layout { grid-template-columns: 1fr; }
     .form-grid,
-    .maintenance-form { grid-template-columns: 1fr; }
+    .maintenance-form,
+    .edit-fields { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 420px) {

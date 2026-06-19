@@ -328,6 +328,22 @@
     <img id="camera-modal-img" alt="Fullscreen camera">
 </div>
 
+<div id="edit-modal" class="edit-modal" hidden>
+    <form id="edit-form" class="edit-dialog">
+        <div class="edit-head">
+            <strong id="edit-title">Edit entry</strong>
+            <button class="icon-btn" type="button" onclick="closeEditModal()" title="Close editor" aria-label="Close editor">
+                {{ ic('x') }}
+            </button>
+        </div>
+        <div id="edit-fields" class="edit-fields"></div>
+        <div class="edit-actions">
+            <button class="btn btn-ghost" type="button" onclick="closeEditModal()">Cancel</button>
+            <button class="btn btn-primary" type="submit">Save changes</button>
+        </div>
+    </form>
+</div>
+
 <div id="toasts" class="toasts" aria-live="polite"></div>
 
 <script>
@@ -340,6 +356,7 @@ const CSRF_TOKEN = {{ csrf_token|tojson }};
 let dashboardData = null;
 let controlLocks = {};
 let currentModalPrinter = null;
+let activeEdit = null;
 const healthState = {};
 const filamentLowState = {};
 
@@ -599,18 +616,24 @@ function renderHistory(history, stats) {
     list.className = "data-list";
     list.innerHTML = history.slice(0, 12).map(item => {
         const status = item.status || "finished";
+        const statusClass = ["finished", "cancelled", "failed"].includes(status) ? status : "info";
+        const id = escapeHtml(item.id || "");
         const usage = item.filament_used_g
             ? ` - ${Number(item.filament_used_g).toFixed(1)}g ${item.filament_material || ""} / $${Number(item.filament_cost || 0).toFixed(2)}`
             : "";
         return `
-            <div class="data-row">
+            <div class="data-row history-row">
                 <div class="row-main">
                     <strong title="${escapeHtml(item.file_name || "")}">${escapeHtml(item.file_name || "Unknown file")}</strong>
                     <span>${escapeHtml(item.printer_label || item.printer || "")}${escapeHtml(usage)}</span>
                 </div>
-                <span class="pill pill-${status}">${escapeHtml(status)}</span>
+                <span class="pill pill-${statusClass}">${escapeHtml(status)}</span>
                 <span class="row-muted">${formatDuration(item.duration_s)}</span>
                 <span class="row-muted">${formatDate(item.ended_at)}</span>
+                <div class="row-actions">
+                    <button class="icon-btn" data-history-action="edit" data-id="${id}" title="Edit history entry" aria-label="Edit history entry">${iconText("edit")}</button>
+                    <button class="icon-btn danger-icon" data-history-action="delete" data-id="${id}" title="Delete history entry" aria-label="Delete history entry">${iconText("trash")}</button>
+                </div>
             </div>
         `;
     }).join("");
@@ -701,18 +724,23 @@ function renderMaintenance(entries) {
     list.className = "data-list";
     list.innerHTML = entries.slice(0, 16).map(entry => {
         const done = Boolean(entry.completed_at);
+        const id = escapeHtml(entry.id || "");
         const dueText = entry.due_date ? `Due ${escapeHtml(entry.due_date)}` : "No due date";
         const action = done
             ? `<span class="pill pill-finished">Done</span>`
-            : `<button class="btn btn-ghost" onclick="completeMaintenance('${entry.id}')">Done</button>`;
+            : `<button class="btn btn-ghost compact-btn" data-maint-action="complete" data-id="${id}">Done</button>`;
         return `
             <div class="data-row maintenance-row ${done ? "done" : ""}">
                 <div class="row-main">
                     <strong>${escapeHtml(entry.task || "")}</strong>
-                    <span>${escapeHtml(entry.printer_label || "")} ${entry.notes ? "- " + escapeHtml(entry.notes) : ""}</span>
+                    <span>${escapeHtml(entry.printer_label || "")}${entry.notes ? " - " + escapeHtml(entry.notes) : ""}${entry.edited_at ? " - edited" : ""}</span>
                 </div>
                 <span class="row-muted">${dueText}</span>
-                ${action}
+                <div class="row-actions">
+                    ${action}
+                    <button class="icon-btn" data-maint-action="edit" data-id="${id}" title="Edit maintenance entry" aria-label="Edit maintenance entry">${iconText("edit")}</button>
+                    <button class="icon-btn danger-icon" data-maint-action="delete" data-id="${id}" title="Delete maintenance entry" aria-label="Delete maintenance entry">${iconText("trash")}</button>
+                </div>
             </div>
         `;
     }).join("");
@@ -829,6 +857,52 @@ function escapeHtml(value) {
     }[ch]));
 }
 
+function optionHtml(value, label, selectedValue) {
+    const selected = String(value) === String(selectedValue) ? " selected" : "";
+    return `<option value="${escapeHtml(value)}"${selected}>${escapeHtml(label)}</option>`;
+}
+
+function printerOptions(selectedValue, options = {}) {
+    const rows = [];
+    if (options.dashboard) rows.push(optionHtml("", "Dashboard", selectedValue));
+    if (options.all) rows.push(optionHtml("all", "All printers", selectedValue));
+    PRINTER_IDS.forEach(pid => rows.push(optionHtml(pid, PRINTERS[pid].label, selectedValue)));
+    return rows.join("");
+}
+
+function textField(label, name, value, attrs = "") {
+    return `<label>${escapeHtml(label)}<input name="${escapeHtml(name)}" value="${escapeHtml(value || "")}" ${attrs}></label>`;
+}
+
+function numberField(label, name, value, attrs = "") {
+    return `<label>${escapeHtml(label)}<input name="${escapeHtml(name)}" type="number" value="${escapeHtml(value ?? 0)}" ${attrs}></label>`;
+}
+
+function selectField(label, name, optionsHtml) {
+    return `<label>${escapeHtml(label)}<select name="${escapeHtml(name)}">${optionsHtml}</select></label>`;
+}
+
+function openEditModal(title, fieldsHtml, onSave, successMsg = "Changes saved") {
+    activeEdit = { onSave, successMsg };
+    document.getElementById("edit-title").textContent = title;
+    document.getElementById("edit-fields").innerHTML = fieldsHtml.join("");
+    document.getElementById("edit-modal").hidden = false;
+    document.body.classList.add("modal-open");
+    requestAnimationFrame(() => document.querySelector("#edit-fields input, #edit-fields select")?.focus());
+}
+
+function closeEditModal() {
+    activeEdit = null;
+    document.getElementById("edit-modal").hidden = true;
+    if (document.getElementById("camera-modal").hidden) {
+        document.body.classList.remove("modal-open");
+    }
+}
+
+function editFormValues() {
+    return Object.fromEntries(new FormData(document.getElementById("edit-form")).entries());
+}
+
 async function saveFilament(pid) {
     try {
         await postJson(`/api/filament/${pid}`, {
@@ -855,6 +929,14 @@ function findActivityEntry(id) {
     return (dashboardData?.activity || []).find(item => item.id === id);
 }
 
+function findHistoryEntry(id) {
+    return (dashboardData?.history || []).find(item => item.id === id);
+}
+
+function findMaintenanceEntry(id) {
+    return (dashboardData?.maintenance || []).find(item => item.id === id);
+}
+
 function openFilamentEntry(pid) {
     const panel = document.querySelector(`[data-filament="${pid}"]`);
     if (!panel) {
@@ -876,27 +958,19 @@ async function editActivityEntry(id) {
         return;
     }
 
-    const action = prompt("Activity title", item.action || "");
-    if (action === null) return;
-    const detail = prompt("Activity detail", item.detail || "");
-    if (detail === null) return;
-    const severity = prompt("Severity: info, ok, warn, danger", item.severity || "info");
-    if (severity === null) return;
-    const printer = prompt(`Printer id (${PRINTER_IDS.join(", ")}) or blank for Dashboard`, item.printer || "");
-    if (printer === null) return;
-
-    try {
+    openEditModal("Edit Activity", [
+        textField("Title", "action", item.action, 'maxlength="80" required'),
+        textField("Detail", "detail", item.detail, 'maxlength="240"'),
+        selectField("Severity", "severity", ["info", "ok", "warn", "danger"].map(value => optionHtml(value, value, item.severity || "info")).join("")),
+        selectField("Printer", "printer", printerOptions(item.printer || "", { dashboard: true })),
+    ], async values => {
         await postJson(`/api/activity/${encodeURIComponent(id)}`, {
-            action,
-            detail,
-            severity: severity.trim().toLowerCase(),
-            printer: printer.trim(),
+            action: values.action,
+            detail: values.detail,
+            severity: values.severity,
+            printer: values.printer,
         });
-        toast("Activity entry updated", "ok");
-        loadDashboardData();
-    } catch (e) {
-        toast(e.message, "err");
-    }
+    }, "Activity entry updated");
 }
 
 async function deleteActivityEntry(id) {
@@ -907,6 +981,89 @@ async function deleteActivityEntry(id) {
     try {
         await postJson(`/api/activity/${encodeURIComponent(id)}/delete`, {});
         toast("Activity entry deleted", "ok");
+        loadDashboardData();
+    } catch (e) {
+        toast(e.message, "err");
+    }
+}
+
+async function editHistoryEntry(id) {
+    const item = findHistoryEntry(id);
+    if (!item) {
+        toast("History entry not found", "err");
+        return;
+    }
+
+    const durationMin = ((Number(item.duration_s) || 0) / 60).toFixed(1);
+    openEditModal("Edit Print History", [
+        textField("File name", "file_name", item.file_name || "Unknown file", 'maxlength="180" required'),
+        selectField("Printer", "printer", printerOptions(item.printer || "")),
+        selectField("Status", "status", ["finished", "cancelled", "failed"].map(value => optionHtml(value, value, item.status || "finished")).join("")),
+        numberField("Duration min", "duration_min", durationMin, 'min="0" step="0.1"'),
+        numberField("Progress %", "progress", item.progress ?? 0, 'min="0" max="100" step="0.1"'),
+        numberField("Filament g", "filament_used_g", item.filament_used_g ?? 0, 'min="0" step="0.1"'),
+        numberField("Cost", "filament_cost", item.filament_cost ?? 0, 'min="0" step="0.01"'),
+        textField("Material", "filament_material", item.filament_material || "", 'maxlength="40"'),
+        textField("Note", "note", item.note || "", 'maxlength="300"'),
+    ], async values => {
+        await postJson(`/api/history/${encodeURIComponent(id)}`, {
+            printer: values.printer,
+            file_name: values.file_name,
+            status: values.status,
+            duration_s: Math.round((Number(values.duration_min) || 0) * 60),
+            progress: Number(values.progress) || 0,
+            filament_used_g: Number(values.filament_used_g) || 0,
+            filament_cost: Number(values.filament_cost) || 0,
+            filament_material: values.filament_material,
+            note: values.note,
+        });
+    }, "Print history updated");
+}
+
+async function deleteHistoryEntry(id) {
+    const item = findHistoryEntry(id);
+    const label = item ? item.file_name || "Unknown file" : "this history entry";
+    if (!confirm(`Delete print history entry: ${label}?`)) return;
+
+    try {
+        await postJson(`/api/history/${encodeURIComponent(id)}/delete`, {});
+        toast("Print history entry deleted", "ok");
+        loadDashboardData();
+    } catch (e) {
+        toast(e.message, "err");
+    }
+}
+
+async function editMaintenanceEntry(id) {
+    const item = findMaintenanceEntry(id);
+    if (!item) {
+        toast("Maintenance entry not found", "err");
+        return;
+    }
+
+    openEditModal("Edit Maintenance", [
+        selectField("Printer", "printer", printerOptions(item.printer || "all", { all: true })),
+        textField("Task", "task", item.task || "", 'maxlength="120" required'),
+        textField("Due date", "due_date", item.due_date || "", 'type="date"'),
+        textField("Notes", "notes", item.notes || "", 'maxlength="300"'),
+    ], async values => {
+        await postJson(`/api/maintenance/${encodeURIComponent(id)}`, {
+            printer: values.printer,
+            task: values.task,
+            due_date: values.due_date,
+            notes: values.notes,
+        });
+    }, "Maintenance entry updated");
+}
+
+async function deleteMaintenanceEntry(id) {
+    const item = findMaintenanceEntry(id);
+    const label = item ? item.task || "maintenance entry" : "this maintenance entry";
+    if (!confirm(`Delete maintenance entry: ${label}?`)) return;
+
+    try {
+        await postJson(`/api/maintenance/${encodeURIComponent(id)}/delete`, {});
+        toast("Maintenance entry deleted", "ok");
         loadDashboardData();
     } catch (e) {
         toast(e.message, "err");
@@ -1287,13 +1444,55 @@ window.addEventListener("DOMContentLoaded", () => {
     document.getElementById("camera-modal").addEventListener("click", event => {
         if (event.target.id === "camera-modal") closeCameraModal();
     });
+    document.getElementById("edit-modal").addEventListener("click", event => {
+        if (event.target.id === "edit-modal") closeEditModal();
+    });
     document.addEventListener("keydown", event => {
-        if (event.key === "Escape" && !document.getElementById("camera-modal").hidden) {
+        if (event.key === "Escape" && !document.getElementById("edit-modal").hidden) {
+            closeEditModal();
+        } else if (event.key === "Escape" && !document.getElementById("camera-modal").hidden) {
             closeCameraModal();
         }
     });
 
     document.getElementById("maintenance-form").addEventListener("submit", addMaintenance);
+    document.getElementById("edit-form").addEventListener("submit", async event => {
+        event.preventDefault();
+        if (!activeEdit) return;
+
+        const edit = activeEdit;
+        try {
+            await edit.onSave(editFormValues());
+            toast(edit.successMsg, "ok");
+            closeEditModal();
+            loadDashboardData();
+        } catch (e) {
+            toast(e.message, "err");
+        }
+    });
+    document.getElementById("history-list").addEventListener("click", event => {
+        const button = event.target.closest("[data-history-action]");
+        if (!button) return;
+
+        if (button.dataset.historyAction === "edit") {
+            editHistoryEntry(button.dataset.id || "");
+        } else if (button.dataset.historyAction === "delete") {
+            deleteHistoryEntry(button.dataset.id || "");
+        }
+    });
+    document.getElementById("maintenance-list").addEventListener("click", event => {
+        const button = event.target.closest("[data-maint-action]");
+        if (!button) return;
+
+        const action = button.dataset.maintAction;
+        if (action === "complete") {
+            completeMaintenance(button.dataset.id || "");
+        } else if (action === "edit") {
+            editMaintenanceEntry(button.dataset.id || "");
+        } else if (action === "delete") {
+            deleteMaintenanceEntry(button.dataset.id || "");
+        }
+    });
     document.getElementById("activity-list").addEventListener("click", event => {
         const button = event.target.closest("[data-activity-action]");
         if (!button) return;

@@ -58,6 +58,7 @@ PRINTER_HEALTH = {}
 HISTORY_LIMIT = 200
 ACTIVITY_LIMIT = 300
 ACTIVITY_SEVERITIES = {"ok", "info", "warn", "danger"}
+HISTORY_STATUSES = {"finished", "cancelled", "failed"}
 
 
 def _now_iso():
@@ -90,6 +91,21 @@ def _empty_data():
     }
 
 
+def _normalize_records(items, limit=None):
+    if not isinstance(items, list):
+        return []
+
+    records = []
+    for item in items[:limit]:
+        if not isinstance(item, dict):
+            continue
+        record = dict(item)
+        if not record.get("id"):
+            record["id"] = uuid.uuid4().hex
+        records.append(record)
+    return records
+
+
 def _normalize_data(data):
     if not isinstance(data, dict):
         data = {}
@@ -98,11 +114,11 @@ def _normalize_data(data):
 
     history = data.get("history", [])
     if isinstance(history, list):
-        normalized["history"] = history[:HISTORY_LIMIT]
+        normalized["history"] = _normalize_records(history, HISTORY_LIMIT)
 
     activity = data.get("activity", [])
     if isinstance(activity, list):
-        normalized["activity"] = activity[:ACTIVITY_LIMIT]
+        normalized["activity"] = _normalize_records(activity, ACTIVITY_LIMIT)
 
     filament = data.get("filament", {})
     if isinstance(filament, dict):
@@ -115,7 +131,7 @@ def _normalize_data(data):
 
     maintenance = data.get("maintenance", [])
     if isinstance(maintenance, list):
-        normalized["maintenance"] = maintenance
+        normalized["maintenance"] = _normalize_records(maintenance)
 
     locks = data.get("control_locks", {})
     if isinstance(locks, dict):
@@ -873,6 +889,70 @@ def export_dashboard_data():
     )
 
 
+@app.route("/api/history/<entry_id>", methods=["POST"])
+def update_history(entry_id):
+    try:
+        data = _json_object()
+        printer = _clean_text(data.get("printer"), 40)
+        if printer and printer not in PRINTERS:
+            raise ValueError("bad printer")
+
+        status = _clean_text(data.get("status"), 24).lower() or "finished"
+        if status not in HISTORY_STATUSES:
+            raise ValueError("status must be finished, cancelled, or failed")
+
+        update = {
+            "printer": printer,
+            "printer_label": PRINTERS.get(printer, {}).get("label", "") if printer else "",
+            "file_name": _clean_text(data.get("file_name"), 180) or "Unknown file",
+            "status": status,
+            "duration_s": int(_clean_float(data.get("duration_s", 0), "duration", 0, 365 * 24 * 3600)),
+            "progress": round(_clean_float(data.get("progress", 0), "progress", 0, 100), 1),
+            "filament_used_g": round(_clean_float(data.get("filament_used_g", 0), "filament used", 0, 100000), 1),
+            "filament_cost": round(_clean_float(data.get("filament_cost", 0), "filament cost", 0, 100000), 2),
+            "filament_material": _clean_text(data.get("filament_material"), 40),
+            "note": _clean_text(data.get("note"), 300),
+            "edited_at": _now_iso(),
+        }
+
+        ended_at = _clean_text(data.get("ended_at"), 40)
+        if ended_at:
+            datetime.fromisoformat(ended_at.replace("Z", "+00:00"))
+            update["ended_at"] = ended_at
+    except ValueError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+
+    def edit_entry(store):
+        for entry in store["history"]:
+            if entry.get("id") == entry_id:
+                entry.update(update)
+                return entry
+        return None
+
+    saved = _update_data(edit_entry)
+    if not saved:
+        return jsonify({"ok": False, "error": "history entry not found"}), 404
+
+    _record_activity("Print history edited", saved.get("printer"), saved.get("file_name", ""), "info")
+    return jsonify({"ok": True, "history": saved})
+
+
+@app.route("/api/history/<entry_id>/delete", methods=["POST"])
+def delete_history(entry_id):
+    def remove_entry(store):
+        for index, entry in enumerate(store["history"]):
+            if entry.get("id") == entry_id:
+                return store["history"].pop(index)
+        return None
+
+    deleted = _update_data(remove_entry)
+    if not deleted:
+        return jsonify({"ok": False, "error": "history entry not found"}), 404
+
+    _record_activity("Print history deleted", deleted.get("printer"), deleted.get("file_name", ""), "warn")
+    return jsonify({"ok": True, "deleted": deleted})
+
+
 @app.route("/api/camera/<printer>/snapshot")
 def camera_snapshot(printer):
     if printer not in PRINTERS:
@@ -1060,6 +1140,74 @@ def add_maintenance():
     saved = _update_data(save_entry)
     _record_activity("Maintenance added", printer if printer != "all" else None, task, "info")
     return jsonify({"ok": True, "maintenance": saved})
+
+
+@app.route("/api/maintenance/<entry_id>", methods=["POST"])
+def update_maintenance(entry_id):
+    try:
+        data = _json_object()
+        printer = _clean_text(data.get("printer"), 40) or "all"
+        if printer != "all" and printer not in PRINTERS:
+            raise ValueError("bad printer")
+
+        due_date = _clean_text(data.get("due_date"), 10)
+        if due_date:
+            datetime.strptime(due_date, "%Y-%m-%d")
+
+        task = _clean_text(data.get("task"), 120)
+        if not task:
+            raise ValueError("task is required")
+
+        update = {
+            "printer": printer,
+            "printer_label": "All printers" if printer == "all" else PRINTERS[printer]["label"],
+            "task": task,
+            "notes": _clean_text(data.get("notes"), 300),
+            "due_date": due_date,
+            "edited_at": _now_iso(),
+        }
+    except ValueError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+
+    def edit_entry(store):
+        for entry in store["maintenance"]:
+            if entry.get("id") == entry_id:
+                entry.update(update)
+                return entry
+        return None
+
+    saved = _update_data(edit_entry)
+    if not saved:
+        return jsonify({"ok": False, "error": "maintenance entry not found"}), 404
+
+    _record_activity(
+        "Maintenance edited",
+        saved.get("printer") if saved.get("printer") != "all" else None,
+        saved.get("task", ""),
+        "info",
+    )
+    return jsonify({"ok": True, "maintenance": saved})
+
+
+@app.route("/api/maintenance/<entry_id>/delete", methods=["POST"])
+def delete_maintenance(entry_id):
+    def remove_entry(store):
+        for index, entry in enumerate(store["maintenance"]):
+            if entry.get("id") == entry_id:
+                return store["maintenance"].pop(index)
+        return None
+
+    deleted = _update_data(remove_entry)
+    if not deleted:
+        return jsonify({"ok": False, "error": "maintenance entry not found"}), 404
+
+    _record_activity(
+        "Maintenance deleted",
+        deleted.get("printer") if deleted.get("printer") != "all" else None,
+        deleted.get("task", ""),
+        "warn",
+    )
+    return jsonify({"ok": True, "deleted": deleted})
 
 
 @app.route("/api/maintenance/<entry_id>/complete", methods=["POST"])
